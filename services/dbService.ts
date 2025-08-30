@@ -2,7 +2,6 @@ import Dexie, { type Table } from 'dexie';
 import { User, Customer, Appointment, Interview, Offer, ErpSettings, StockItem, Invoice, Notification, LeaveRequest, KmRecord, LocationRecord, AISettings, EmailDraft, Reconciliation, CalculatorState, CalculationHistoryItem, IncomingInvoice, OutgoingInvoice, AuditLog, ShiftTemplate, ShiftAssignment, Warehouse, StockLevel } from '../types';
 import { DEFAULT_ADMIN, MOCK_APPOINTMENTS, MOCK_CUSTOMERS } from '../constants';
 import { MOCK_INCOMING_INVOICES, MOCK_OUTGOING_INVOICES } from './erpMockData';
-import { v4 as uuidv4 } from 'uuid';
 
 export class AppDatabase extends Dexie {
     users!: Table<User, string>;
@@ -50,8 +49,8 @@ export class AppDatabase extends Dexie {
             reconciliations: 'id, customerId, status, period, createdAt',
             calculatorState: 'id',
             calculationHistory: '++id, timestamp',
-            incomingInvoices: 'id, &faturaNo, vergiNo, tarih',
-            outgoingInvoices: 'id, &faturaNo, vergiNo, tarih',
+            incomingInvoices: '&faturaNo, vergiNo, tarih',
+            outgoingInvoices: '&faturaNo, vergiNo, tarih',
             auditLogs: '++id, userId, entityId, timestamp',
             shiftTemplates: 'id, name',
             shiftAssignments: 'id, &[personnelId+date]',
@@ -67,11 +66,11 @@ export const seedInitialData = async () => {
     try {
         await (db as Dexie).transaction('rw', db.tables, async () => {
             if ((await db.incomingInvoices.count()) === 0) {
-                const incomingWithIds = MOCK_INCOMING_INVOICES.map(inv => ({ ...inv, id: uuidv4() }));
+                const incomingWithIds = MOCK_INCOMING_INVOICES.map(inv => ({ ...inv }));
                 await db.incomingInvoices.bulkAdd(incomingWithIds);
             }
             if ((await db.outgoingInvoices.count()) === 0) {
-                const outgoingWithIds = MOCK_OUTGOING_INVOICES.map(inv => ({ ...inv, id: uuidv4() }));
+                const outgoingWithIds = MOCK_OUTGOING_INVOICES.map(inv => ({ ...inv }));
                 await db.outgoingInvoices.bulkAdd(outgoingWithIds);
             }
         });

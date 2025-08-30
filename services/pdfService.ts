@@ -1,7 +1,6 @@
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-// FIX: Imported missing types `IncomingInvoice` and `OutgoingInvoice`.
-import { Offer, Customer, Reconciliation, Invoice, Interview, IncomingInvoice, OutgoingInvoice } from '../types';
+import { Offer, Customer, Reconciliation, Interview, IncomingInvoice, OutgoingInvoice } from '../types';
 import { COMPANY_INFO, ASSETS } from '../constants';
 import { formatCurrency, formatDate, formatDateTime } from '../utils/formatting';
 
@@ -133,7 +132,7 @@ export const downloadOfferAsPdf = async (offer: Offer, customer: Customer | unde
     document.body.appendChild(container);
 
     try {
-        const canvas = await html2canvas(container.firstChild as HTMLElement, { scale: 2, useCORS: true });
+        const canvas = await html2canvas(container.children[0] as HTMLElement, { scale: 2, useCORS: true });
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
         const imgProps = pdf.getImageProperties(imgData);
@@ -337,7 +336,8 @@ const downloadPdf = async (htmlContent: string, fileName: string): Promise<{succ
     document.body.appendChild(container);
 
     try {
-        const canvas = await html2canvas(container.firstChild as HTMLElement, { scale: 2, useCORS: true });
+        // Using container.children[0] is crucial to avoid capturing whitespace text nodes.
+        const canvas = await html2canvas(container.children[0] as HTMLElement, { scale: 2, useCORS: true });
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();

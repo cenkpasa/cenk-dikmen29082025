@@ -211,7 +211,6 @@ export interface Invoice {
 }
 
 export interface IncomingInvoice {
-    id: string;
     faturaNo: string;
     tedarikciAdi: string;
     vergiNo: string;
@@ -222,7 +221,6 @@ export interface IncomingInvoice {
 }
 
 export interface OutgoingInvoice {
-    id: string;
     faturaNo: string;
     musteriAdi: string;
     vergiNo: string;

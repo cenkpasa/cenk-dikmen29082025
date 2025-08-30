@@ -16,7 +16,7 @@ export const fetchIncomingInvoices = (): Promise<IncomingInvoice[]> => {
     console.log("Simulating ERP fetch for INCOMING invoices...");
     return new Promise(resolve => {
         setTimeout(() => {
-            resolve(MOCK_INCOMING_INVOICES.map(inv => ({...inv, id: uuidv4()})));
+            resolve(MOCK_INCOMING_INVOICES);
         }, SIMULATED_DELAY);
     });
 };
@@ -25,7 +25,7 @@ export const fetchOutgoingInvoices = (): Promise<OutgoingInvoice[]> => {
     console.log("Simulating ERP fetch for OUTGOING invoices...");
     return new Promise(resolve => {
         setTimeout(() => {
-            resolve(MOCK_OUTGOING_INVOICES.map(inv => ({...inv, id: uuidv4()})));
+            resolve(MOCK_OUTGOING_INVOICES);
         }, SIMULATED_DELAY);
     });
 };

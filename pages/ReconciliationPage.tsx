@@ -33,8 +33,8 @@ const ReconciliationDetailView = ({ reconciliation, onBack, incomingInvoices, ou
 
     const customer = useMemo(() => customers.find(c => c.id === reconciliation.customerId), [customers, reconciliation.customerId]);
     const relatedInvoices = useMemo(() => {
-        const incoming = incomingInvoices.find(i => i.id === reconciliation.incomingInvoiceId);
-        const outgoing = outgoingInvoices.find(i => i.id === reconciliation.outgoingInvoiceId);
+        const incoming = incomingInvoices.find(i => i.faturaNo === reconciliation.incomingInvoiceId);
+        const outgoing = outgoingInvoices.find(i => i.faturaNo === reconciliation.outgoingInvoiceId);
         return { incoming, outgoing };
     }, [reconciliation, incomingInvoices, outgoingInvoices]);
 
@@ -140,8 +140,8 @@ const ReconciliationPage = () => {
         const matchedIncomingIds = new Set(reconciliations.map(r => r.incomingInvoiceId));
         const matchedOutgoingIds = new Set(reconciliations.map(r => r.outgoingInvoiceId));
         return {
-            incoming: incomingInvoices.filter(i => !matchedIncomingIds.has(i.id)),
-            outgoing: outgoingInvoices.filter(i => !matchedOutgoingIds.has(i.id)),
+            incoming: incomingInvoices.filter(i => !matchedIncomingIds.has(i.faturaNo)),
+            outgoing: outgoingInvoices.filter(i => !matchedOutgoingIds.has(i.faturaNo)),
         };
     }, [reconciliations, incomingInvoices, outgoingInvoices]);
 
@@ -174,8 +174,8 @@ const ReconciliationPage = () => {
                     period: new Date(pair.incoming.tarih).toISOString().slice(0, 7),
                     amount: pair.incoming.tutar,
                     currency: pair.incoming.currency,
-                    incomingInvoiceId: pair.incoming.id,
-                    outgoingInvoiceId: pair.outgoing.id,
+                    incomingInvoiceId: pair.incoming.faturaNo,
+                    outgoingInvoiceId: pair.outgoing.faturaNo,
                 });
                 createdCount++;
             }

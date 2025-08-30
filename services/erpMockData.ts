@@ -83,14 +83,14 @@ export const MOCK_ERP_OFFERS: (Omit<Offer, 'id' | 'createdAt' | 'toplam' | 'kdv'
 ];
 
 
-export const MOCK_INCOMING_INVOICES: Omit<IncomingInvoice, 'id'>[] = [
+export const MOCK_INCOMING_INVOICES: IncomingInvoice[] = [
   { faturaNo: 'EUR2025000009155', tedarikciAdi: 'EUROFER KESİCİ TAKIMLAR', vergiNo: '4641531636', tarih: '2025-08-04T10:46:00.000Z', tutar: 3288.00, currency: 'TRY', description: 'CG35692,IAT206B-080' },
   { faturaNo: 'CTR2025000002662', tedarikciAdi: 'CUTRON KESİCİ TAKIMLAR', vergiNo: '2161201788', tarih: '2025-08-01T07:56:00.000Z', tutar: 13566.24, currency: 'TRY', description: 'KARBÜR FREZE' },
   { faturaNo: 'AKH2025000000728', tedarikciAdi: 'AK KESİCİ TAKIM', vergiNo: '0111103590', tarih: '2025-07-24T11:18:00.000Z', tutar: 2169.60, currency: 'TRY', description: 'KARBÜR MATKAP' },
   { faturaNo: 'ASL2025000002659', tedarikciAdi: 'ASLAN GRUP KESİCİ TAKIM', vergiNo: '0891305401', tarih: '2025-07-23T18:15:00.000Z', tutar: 7333.62, currency: 'TRY', description: 'Özel Takım' },
 ];
 
-export const MOCK_OUTGOING_INVOICES: Omit<OutgoingInvoice, 'id'>[] = [
+export const MOCK_OUTGOING_INVOICES: OutgoingInvoice[] = [
   // A perfect match for EUROFER
   { faturaNo: 'CNK-SATIS-001', musteriAdi: 'EUROFER KESİCİ TAKIMLAR', vergiNo: '4641531636', tarih: '2025-08-05T09:00:00.000Z', tutar: 3288.00, currency: 'TRY', description: 'CG35692' },
   // A match with date tolerance for CUTRON

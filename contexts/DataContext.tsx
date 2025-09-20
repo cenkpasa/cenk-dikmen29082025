@@ -1,23 +1,25 @@
+
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Customer, Appointment, Interview, Offer } from '../types';
-import { db } from '../services/dbService';
-import { useNotificationCenter } from './NotificationCenterContext';
+import { Customer, Appointment, Interview, Offer } from '@/types';
+import { db } from '@/services/dbService';
+import { useNotificationCenter } from '@/contexts/NotificationCenterContext';
 import { v4 as uuidv4 } from 'uuid';
-import { auditLogService } from '../services/auditLogService';
-import { useAuth } from './AuthContext';
+import { auditLogService } from '@/services/auditLogService';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNotification } from './NotificationContext';
 
 interface DataContextType {
     customers: Customer[];
     addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => Promise<string>;
     updateCustomer: (customer: Customer) => Promise<void>;
-    deleteCustomer: (customerId: string) => Promise<void>;
+    archiveCustomer: (customerId: string) => Promise<void>;
     bulkAddCustomers: (newCustomers: Omit<Customer, 'id' | 'createdAt'>[]) => Promise<number>;
     
     appointments: Appointment[];
     addAppointment: (appointment: Omit<Appointment, 'id' | 'createdAt'>) => Promise<void>;
     updateAppointment: (appointment: Appointment) => Promise<void>;
-    deleteAppointment: (appointmentId: string) => Promise<void>;
+    cancelAppointment: (appointmentId: string) => Promise<void>;
 
     interviews: Interview[];
     addInterview: (interview: Omit<Interview, 'id' | 'createdAt'>) => Promise<void>;
@@ -37,6 +39,7 @@ interface DataProviderProps {
 
 export const DataProvider = ({ children }: DataProviderProps) => {
     const { addNotification } = useNotificationCenter();
+    const { showNotification } = useNotification();
     const { currentUser } = useAuth();
     
     const customers = useLiveQuery(() => db.customers.orderBy('createdAt').reverse().toArray(), []) || [];
@@ -47,11 +50,25 @@ export const DataProvider = ({ children }: DataProviderProps) => {
     // Customer Actions
     const addCustomer = async (customerData: Omit<Customer, 'id' | 'createdAt'>): Promise<string> => {
         if (!currentUser) throw new Error("User not authenticated");
+        
+        const isOnline = navigator.onLine;
+
         const newCustomer: Customer = { 
             ...customerData, 
             id: uuidv4(), 
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            synced: isOnline
         };
+
+        if (!isOnline) {
+            await db.syncQueue.add({
+                type: 'add-customer',
+                payload: newCustomer,
+                timestamp: Date.now()
+            });
+            showNotification('offlineQueueAdd', 'info');
+        }
+
         const newId = await db.customers.add(newCustomer);
         addNotification({
             messageKey: 'activityCustomerAdded',
@@ -69,11 +86,11 @@ export const DataProvider = ({ children }: DataProviderProps) => {
         await auditLogService.logAction(currentUser, 'UPDATE_CUSTOMER', 'customer', updatedCustomer.id, `Customer '${updatedCustomer.name}' updated.`);
     };
 
-    const deleteCustomer = async (customerId: string) => {
+    const archiveCustomer = async (customerId: string) => {
         if (!currentUser) throw new Error("User not authenticated");
-        const customerToDelete = customers.find(c => c.id === customerId);
-        await db.customers.delete(customerId);
-        await auditLogService.logAction(currentUser, 'DELETE_CUSTOMER', 'customer', customerId, `Customer '${customerToDelete?.name || customerId}' deleted.`);
+        const customerToArchive = customers.find(c => c.id === customerId);
+        await db.customers.update(customerId, { status: 'passive' });
+        await auditLogService.logAction(currentUser, 'ARCHIVE_CUSTOMER', 'customer', customerId, `Customer '${customerToArchive?.name || customerId}' archived.`);
     };
 
     const bulkAddCustomers = async (newCustomersData: Omit<Customer, 'id' | 'createdAt'>[]) => {
@@ -89,7 +106,8 @@ export const DataProvider = ({ children }: DataProviderProps) => {
                 customersToAdd.push({
                     ...newCust,
                     id: uuidv4(),
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    synced: true,
                 });
             }
         }
@@ -107,7 +125,8 @@ export const DataProvider = ({ children }: DataProviderProps) => {
         const newAppointment: Appointment = {
             ...appointmentData,
             id: uuidv4(),
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            status: 'active'
         };
         const newId = await db.appointments.add(newAppointment);
         addNotification({
@@ -125,11 +144,11 @@ export const DataProvider = ({ children }: DataProviderProps) => {
         await auditLogService.logAction(currentUser, 'UPDATE_APPOINTMENT', 'appointment', updatedAppointment.id, `Appointment '${updatedAppointment.title}' updated.`);
     };
 
-    const deleteAppointment = async (appointmentId: string) => {
+    const cancelAppointment = async (appointmentId: string) => {
         if (!currentUser) throw new Error("User not authenticated");
-        const appToDelete = appointments.find(a => a.id === appointmentId);
-        await db.appointments.delete(appointmentId);
-        await auditLogService.logAction(currentUser, 'DELETE_APPOINTMENT', 'appointment', appointmentId, `Appointment '${appToDelete?.title || appointmentId}' deleted.`);
+        const appToCancel = appointments.find(a => a.id === appointmentId);
+        await db.appointments.update(appointmentId, { status: 'cancelled' });
+        await auditLogService.logAction(currentUser, 'CANCEL_APPOINTMENT', 'appointment', appointmentId, `Appointment '${appToCancel?.title || appointmentId}' cancelled.`);
     };
 
     // Interview Actions
@@ -165,7 +184,8 @@ export const DataProvider = ({ children }: DataProviderProps) => {
             ...offerData,
             id: uuidv4(),
             teklifNo: 'TEK-' + Date.now().toString().slice(-6),
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            status: 'draft'
         };
         const newId = await db.offers.add(newOffer);
         addNotification({
@@ -189,8 +209,9 @@ export const DataProvider = ({ children }: DataProviderProps) => {
              ...newOffer,
              id: uuidv4(),
              createdAt: new Date().toISOString(),
-             teklifNo: 'TEK-' + Date.now().toString().slice(-6) + Math.random().toString(36).substring(2, 4)
-        }));
+             teklifNo: 'TEK-' + Date.now().toString().slice(-6) + Math.random().toString(36).substring(2, 4),
+             status: 'draft'
+        } as Offer));
 
         if (offersToAdd.length > 0) {
             await db.offers.bulkAdd(offersToAdd);
@@ -200,8 +221,8 @@ export const DataProvider = ({ children }: DataProviderProps) => {
     }
     
     const value = {
-        customers, addCustomer, updateCustomer, deleteCustomer, bulkAddCustomers,
-        appointments, addAppointment, updateAppointment, deleteAppointment,
+        customers, addCustomer, updateCustomer, archiveCustomer, bulkAddCustomers,
+        appointments, addAppointment, updateAppointment, cancelAppointment,
         interviews, addInterview, updateInterview,
         offers, addOffer, updateOffer, bulkAddOffers,
     };

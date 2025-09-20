@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface StatCardProps {
     titleKey: string;
@@ -15,11 +15,11 @@ const StatCard = ({ titleKey, value, change, color }: StatCardProps) => {
         yellow: 'from-amber-400 to-amber-500',
         pink: 'from-pink-400 to-pink-500',
         green: 'from-emerald-400 to-emerald-500',
-        blue: 'from-blue-400 to-blue-500',
+        blue: 'from-indigo-400 to-indigo-500',
     };
     
     return (
-        <div className="bg-cnk-panel-light p-5 rounded-xl shadow-sm border border-cnk-border-light">
+        <div className="bg-cnk-panel-light p-5 rounded-cnk-card shadow-md border border-cnk-border-light">
             <div className={`w-full h-1.5 bg-gradient-to-r ${colorClasses[color]} rounded-full mb-3`}></div>
             <p className="text-sm text-cnk-txt-muted-light">{t(titleKey)}</p>
             <div className="flex items-end justify-between mt-1">

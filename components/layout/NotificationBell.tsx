@@ -1,7 +1,8 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { useNotificationCenter } from '../../contexts/NotificationCenterContext';
-import NotificationPanel from './NotificationPanel';
-import { ViewState } from '../../App';
+import { useNotificationCenter } from '@/contexts/NotificationCenterContext';
+import NotificationPanel from '@/components/layout/NotificationPanel';
+import { ViewState } from '@/App';
 
 interface NotificationBellProps {
     setView: (view: ViewState) => void;

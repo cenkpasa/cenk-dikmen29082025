@@ -1,8 +1,9 @@
+
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { Offer, Customer, Reconciliation, Interview, IncomingInvoice, OutgoingInvoice } from '../types';
-import { COMPANY_INFO, ASSETS } from '../constants';
-import { formatCurrency, formatDate, formatDateTime } from '../utils/formatting';
+import { Offer, Customer, Reconciliation, Interview, IncomingInvoice, OutgoingInvoice } from '@/types';
+import { COMPANY_INFO, ASSETS } from '@/constants';
+import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatting';
 
 export const getOfferHtml = (offer: Offer, customer: Customer | undefined, t: (key: string, replacements?: Record<string, string>) => string): string => {
     return `

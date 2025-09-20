@@ -1,38 +1,43 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
-import { LanguageProvider } from './contexts/LanguageContext';
-import { NotificationProvider } from './contexts/NotificationContext';
-import { AuthProvider } from './contexts/AuthContext';
-import { DataProvider } from './contexts/DataContext';
-import { ErpProvider } from './contexts/ErpContext';
-import { PersonnelProvider } from './contexts/PersonnelContext';
-import { NotificationCenterProvider } from './contexts/NotificationCenterContext';
-import { SettingsProvider } from './contexts/SettingsContext';
-import { ReconciliationProvider } from './contexts/ReconciliationContext';
-import { seedDatabase } from './services/dbService';
-import Loader from './components/common/Loader';
+import App from '@/App';
+import { LanguageProvider } from '@/contexts/LanguageContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { DataProvider } from '@/contexts/DataContext';
+import { ErpProvider } from '@/contexts/ErpContext';
+import { PersonnelProvider } from '@/contexts/PersonnelContext';
+import { NotificationCenterProvider } from '@/contexts/NotificationCenterContext';
+import { SettingsProvider } from '@/contexts/SettingsContext';
+import { ReconciliationProvider } from '@/contexts/ReconciliationContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { seedDatabase } from '@/services/dbService';
+import Loader from '@/components/common/Loader';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 const AppProviders = () => (
-    <LanguageProvider>
-      <NotificationProvider>
-        <AuthProvider>
-          <SettingsProvider>
-            <NotificationCenterProvider>
-              <DataProvider>
-                  <ErpProvider>
-                    <PersonnelProvider>
-                      <ReconciliationProvider>
-                        <App />
-                      </ReconciliationProvider>
-                    </PersonnelProvider>
-                  </ErpProvider>
-              </DataProvider>
-            </NotificationCenterProvider>
-          </SettingsProvider>
-        </AuthProvider>
-      </NotificationProvider>
-    </LanguageProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <NotificationProvider>
+          <AuthProvider>
+            <SettingsProvider>
+              <NotificationCenterProvider>
+                <DataProvider>
+                    <ErpProvider>
+                      <PersonnelProvider>
+                        <ReconciliationProvider>
+                          <App />
+                        </ReconciliationProvider>
+                      </PersonnelProvider>
+                    </ErpProvider>
+                </DataProvider>
+              </NotificationCenterProvider>
+            </SettingsProvider>
+          </AuthProvider>
+        </NotificationProvider>
+      </LanguageProvider>
+    </ThemeProvider>
 );
 
 
@@ -72,6 +77,8 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <AppInitializer />
+    <ErrorBoundary>
+      <AppInitializer />
+    </ErrorBoundary>
   </React.StrictMode>
 );

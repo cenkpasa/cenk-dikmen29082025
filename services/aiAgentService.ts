@@ -1,7 +1,8 @@
-import { db } from './dbService';
-import { Offer, Interview, Customer, EmailDraft, AISettings } from '../types';
-import { type NewNotificationData } from '../contexts/NotificationCenterContext';
-import { generateFollowUpEmail } from './aiService';
+
+import { db } from '@/services/dbService';
+import { Offer, Interview, Customer, EmailDraft, AISettings } from '@/types';
+import { type NewNotificationData } from '@/contexts/NotificationCenterContext';
+import { generateFollowUpEmail } from '@/services/aiService';
 import { v4 as uuidv4 } from 'uuid';
 
 export type Insight = NewNotificationData;

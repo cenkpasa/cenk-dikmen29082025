@@ -28,7 +28,7 @@ const Modal = ({ isOpen, onClose, title, children, footer, size = 'lg' }: ModalP
             onClick={onClose}
         >
             <div
-                className={`relative mx-4 w-full ${sizeClasses[size]} transform rounded-xl bg-cnk-panel-light text-cnk-txt-secondary-light p-6 shadow-xl transition-all flex flex-col`}
+                className={`relative mx-4 w-full ${sizeClasses[size]} transform rounded-cnk-card bg-cnk-panel-light text-cnk-txt-secondary-light p-6 shadow-xl flex flex-col`}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-start justify-between border-b border-cnk-border-light pb-4 flex-shrink-0">

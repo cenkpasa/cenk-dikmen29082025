@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { useData } from '../contexts/DataContext';
-import { useAuth } from '../contexts/AuthContext';
-import { useErp } from '../contexts/ErpContext';
-import { User, Invoice, Interview, Customer, Offer, ReportType } from '../types';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useData } from '@/contexts/DataContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useErp } from '@/contexts/ErpContext';
+import { User, Invoice, Interview, Customer, Offer, ReportType } from '@/types';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface ReportFilters {
     reportType: ReportType;

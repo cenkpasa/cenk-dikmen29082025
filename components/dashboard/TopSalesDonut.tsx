@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const TopSalesDonut = () => {
     const { t } = useLanguage();
@@ -8,14 +8,14 @@ const TopSalesDonut = () => {
     const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
     return (
-        <div className="bg-cnk-panel-light p-5 rounded-xl shadow-sm border border-cnk-border-light h-full flex flex-col items-center justify-center">
+        <div className="bg-cnk-panel-light p-5 rounded-cnk-card border border-cnk-border-light h-full flex flex-col items-center justify-center">
             <h3 className="font-semibold text-cnk-txt-primary-light mb-4">{t('topSalesDonutTitle')}</h3>
             <div className="relative w-40 h-40">
                 <svg className="w-full h-full" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="45" fill="transparent" stroke="#e2e8f0" strokeWidth="10" />
                     <circle
                         cx="50" cy="50" r="45" fill="transparent"
-                        stroke="#3b82f6" strokeWidth="10"
+                        stroke="var(--cnk-accent-primary)" strokeWidth="10"
                         strokeDasharray={circumference}
                         strokeDashoffset={strokeDashoffset}
                         transform="rotate(-90 50 50)"

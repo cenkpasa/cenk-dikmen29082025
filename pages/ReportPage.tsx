@@ -22,7 +22,7 @@ const ReportControls = ({ filters, setFilters, isAdmin }: { filters: ReportFilte
     };
     
     return (
-        <div className="bg-cnk-panel-light p-4 rounded-xl shadow-sm border border-cnk-border-light">
+        <div className="bg-cnk-panel-light p-4 rounded-cnk-card shadow-md border border-cnk-border-light">
             <h3 className="font-bold text-lg mb-4">Raporlama Filtreleri</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
@@ -61,8 +61,13 @@ const ReportControls = ({ filters, setFilters, isAdmin }: { filters: ReportFilte
 const ReportPage = () => {
     const { currentUser } = useAuth();
     const { t } = useLanguage();
+    
+    if (currentUser?.role !== 'admin') {
+        return <p className="text-center p-4 bg-yellow-500/10 text-yellow-300 rounded-lg">{t('permissionDenied')}</p>;
+    }
+
     const [filters, setFilters] = useState<ReportFilters>({
-        reportType: 'sales_performance',
+        reportType: 'customer_invoice_analysis',
         dateRange: { start: new Date(new Date().setDate(1)).toISOString().slice(0,10), end: new Date().toISOString().slice(0,10) },
         userId: currentUser?.role === 'admin' ? '' : currentUser?.id,
     });
@@ -73,25 +78,32 @@ const ReportPage = () => {
         <div className="space-y-6">
             <ReportControls filters={filters} setFilters={setFilters} isAdmin={currentUser?.role === 'admin'} />
 
-            <div className="bg-cnk-panel-light p-4 rounded-xl shadow-sm border border-cnk-border-light">
+            <div className="bg-cnk-panel-light p-4 rounded-cnk-card shadow-md border border-cnk-border-light">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold">{title}</h2>
                     <div className="flex gap-2">
-                        <Button onClick={() => exportToExcel(data, columns.map(c => ({...c, header: t(c.header)})), title)} className="px-3 py-1 bg-green-600 text-white rounded-md text-sm">Excel'e Aktar</Button>
-                        <Button onClick={() => exportToPdf(data, columns.map(c => ({...c, header: t(c.header)})), title, title)} className="px-3 py-1 bg-red-600 text-white rounded-md text-sm">PDF'e Aktar</Button>
+                        <Button onClick={() => exportToExcel(data, columns.map(c => ({...c, header: t(c.header)})), title)} icon="fas fa-file-excel" variant="success">Excel'e Aktar</Button>
+                        <Button onClick={() => exportToPdf(data, columns.map(c => ({...c, header: t(c.header)})), title, title)} icon="fas fa-file-pdf" variant="danger">PDF'e Aktar</Button>
                     </div>
                 </div>
                 
                 {data.length > 0 ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <DataTable columns={columns.map(c => ({...c, header: t(c.header)}))} data={data} />
-                        <div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2">
+                             <DataTable columns={columns.map(c => ({...c, header: t(c.header)}))} data={data} />
+                        </div>
+                        <div className="lg:col-span-1">
                             {filters.reportType === 'customer_invoice_analysis' && chartData && <InvoiceAnalysisChart chartData={chartData} />}
-                            <div className="mt-4 p-4 bg-cnk-bg-light rounded-lg">
+                            <div className="mt-4 p-4 bg-cnk-bg-light rounded-cnk-element">
                                 <h3 className="font-bold mb-2">Özet</h3>
+                                <div className="space-y-1 text-sm">
                                 {Object.entries(summary).map(([key, value]) => (
-                                    <p key={key}><strong>{t(key)}:</strong> {value}</p>
+                                    <div key={key} className="flex justify-between">
+                                        <span className="font-semibold text-cnk-txt-secondary-light">{t(key)}:</span> 
+                                        <span className="text-cnk-txt-primary-light">{value}</span>
+                                    </div>
                                 ))}
+                                </div>
                             </div>
                         </div>
                     </div>

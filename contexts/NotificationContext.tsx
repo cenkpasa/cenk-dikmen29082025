@@ -1,7 +1,6 @@
 
-
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
-import { useLanguage } from './LanguageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Notification {
     id: number;
@@ -25,6 +24,7 @@ interface NotificationComponentProps {
 const NotificationComponent = ({ notification, onDismiss }: NotificationComponentProps) => {
     const { t } = useLanguage();
     const message = t(notification.messageKey, notification.replacements);
+    const title = t(notification.type);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -34,30 +34,34 @@ const NotificationComponent = ({ notification, onDismiss }: NotificationComponen
     }, [notification.id, onDismiss]);
 
     const typeClasses = {
-        success: 'border-green-500',
-        error: 'border-red-500',
-        warning: 'border-amber-500',
-        info: 'border-blue-500',
+        success: 'bg-green-500/10 border-green-500/30 text-green-800',
+        error: 'bg-red-500/10 border-red-500/30 text-red-800',
+        warning: 'bg-amber-500/10 border-amber-500/30 text-amber-800',
+        info: 'bg-blue-500/10 border-blue-500/30 text-blue-800',
     };
     const iconClasses = {
-        success: 'fa-check-circle text-green-500',
-        error: 'fa-times-circle text-red-500',
-        warning: 'fa-exclamation-triangle text-amber-500',
-        info: 'fa-info-circle text-blue-500',
+        success: 'fa-check-circle',
+        error: 'fa-times-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle',
     };
 
     return (
-        <div className={`notification relative flex w-full max-w-sm animate-slideInRight items-center gap-4 overflow-hidden rounded-lg bg-white p-4 shadow-lg border-l-4 ${typeClasses[notification.type]}`}>
-            <div className={`icon text-2xl ${iconClasses[notification.type]}`}>
+        <div className={`notification relative flex w-full max-w-sm animate-slideInRight items-start gap-4 overflow-hidden rounded-lg p-4 shadow-lg border ${typeClasses[notification.type]}`}>
+            <div className="icon text-2xl mt-1">
                 <i className={`fas ${iconClasses[notification.type]}`}></i>
             </div>
-            <div className="message flex-grow text-sm text-cnk-txt-secondary-light">{message}</div>
-            <button onClick={() => onDismiss(notification.id)} className="close-btn text-gray-400 hover:text-gray-600">
-                <i className="fas fa-times"></i>
+            <div className="message flex-grow">
+                <p className="font-bold text-sm">{title}</p>
+                <p className="text-sm">{message}</p>
+            </div>
+            <button onClick={() => onDismiss(notification.id)} className="absolute top-2 right-2 text-current opacity-60 hover:opacity-100">
+                <i className="fas fa-times text-sm"></i>
             </button>
         </div>
     );
 };
+
 
 interface NotificationProviderProps {
     children: ReactNode;

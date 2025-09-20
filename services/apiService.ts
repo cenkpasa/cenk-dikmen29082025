@@ -1,28 +1,11 @@
+
 // src/services/apiService.ts
 // IMPORTANT: This file simulates communication with a backend server.
 // In a real application, this would make fetch/axios requests to a real API.
 
-import { db } from './dbService';
+import { db } from '@/services/dbService';
 
 export const api = {
-  /**
-   * Authenticates a user against the local database (simulating an API call).
-   */
-  async login(username: string, password: string): Promise<{ success: boolean; messageKey: string }> {
-    console.log(`Simulating API login for user: ${username}`);
-    // In a real app, this would be a POST request to '/api/login'.
-    // Here, we check against our local Dexie DB.
-    const user = await db.users.where('username').equalsIgnoreCase(username).first();
-    if (!user) {
-        return { success: false, messageKey: 'userNotFound' };
-    }
-    // This check is simplified. A real backend would use bcrypt.compare().
-    if (user.password !== password) {
-        return { success: false, messageKey: 'invalidPassword' };
-    }
-    return { success: true, messageKey: 'loggedInWelcome' };
-  },
-
   /**
    * Simulates a user registration API call.
    */

@@ -89,7 +89,7 @@ const ReconciliationDetailView = ({ reconciliation, onBack, incomingInvoices, ou
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2 space-y-4">
-                    <div className="p-4 bg-cnk-panel-light rounded-lg shadow-sm border">
+                    <div className="p-4 bg-cnk-panel-light rounded-cnk-element shadow-sm border">
                         <h3 className="font-bold text-lg mb-2">{t('reconciliationDetails')}</h3>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <p><strong>{t('customer')}:</strong> {customer.name}</p>
@@ -98,7 +98,7 @@ const ReconciliationDetailView = ({ reconciliation, onBack, incomingInvoices, ou
                             <p><strong>{t('amount')}:</strong> {formatCurrency(reconciliation.amount, reconciliation.currency)}</p>
                         </div>
                     </div>
-                    <div className="p-4 bg-cnk-panel-light rounded-lg shadow-sm border">
+                    <div className="p-4 bg-cnk-panel-light rounded-cnk-element shadow-sm border">
                         <h3 className="font-bold text-lg mb-2">{t('matchedInvoices')}</h3>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div><strong>{t('incomingInvoices')}:</strong> <span className="font-mono">{relatedInvoices.incoming?.faturaNo}</span></div>
@@ -106,7 +106,7 @@ const ReconciliationDetailView = ({ reconciliation, onBack, incomingInvoices, ou
                         </div>
                     </div>
                 </div>
-                <div className="p-4 bg-cnk-panel-light rounded-lg shadow-sm border">
+                <div className="p-4 bg-cnk-panel-light rounded-cnk-element shadow-sm border">
                     <h3 className="font-bold text-lg mb-2">{t('disagreementDetails')}</h3>
                     <textarea
                         value={customerResponse}
@@ -220,6 +220,10 @@ const ReconciliationPage = () => {
         { header: t('totalAmount'), accessor: (item: any) => formatCurrency(item.tutar, item.currency) },
     ];
 
+    if (currentUser?.role !== 'admin' && currentUser?.role !== 'muhasebe') {
+        return <p className="text-center p-4 bg-yellow-500/10 text-yellow-300 rounded-lg">{t('permissionDenied')}</p>;
+    }
+
     if (selectedReconciliation) {
         return <ReconciliationDetailView 
             reconciliation={selectedReconciliation} 
@@ -239,17 +243,17 @@ const ReconciliationPage = () => {
                 </div>
             </div>
 
-            <div className="bg-cnk-panel-light p-4 rounded-lg shadow-sm border">
+            <div className="bg-cnk-panel-light p-4 rounded-cnk-card shadow-md border">
                 <h2 className="text-lg font-bold mb-2">{t('reconciliations')}</h2>
                 <DataTable columns={reconciliationColumns} data={reconciliations} emptyStateMessage={t('noReconciliationYet')} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-cnk-panel-light p-4 rounded-lg shadow-sm border">
+                <div className="bg-cnk-panel-light p-4 rounded-cnk-card shadow-md border">
                     <h2 className="text-lg font-bold mb-2">{t('unmatchedIncoming')}</h2>
                     <DataTable columns={invoiceColumns('incoming')} data={unmatchedInvoices.incoming} />
                 </div>
-                <div className="bg-cnk-panel-light p-4 rounded-lg shadow-sm border">
+                <div className="bg-cnk-panel-light p-4 rounded-cnk-card shadow-md border">
                     <h2 className="text-lg font-bold mb-2">{t('unmatchedOutgoing')}</h2>
                     <DataTable columns={invoiceColumns('outgoing')} data={unmatchedInvoices.outgoing} />
                 </div>

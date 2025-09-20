@@ -1,9 +1,11 @@
+
 import React from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { Page, UserRole } from '../../types';
-import { ViewState } from '../../App';
-import CnkLogo from '../assets/CnkLogo';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Page, UserRole } from '@/types';
+import { ViewState } from '@/App';
+import CnkLogo from '@/components/assets/CnkLogo';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface NavLink {
     page: Page;
@@ -18,6 +20,7 @@ const NAV_LINKS: NavLink[] = [
     { page: 'appointments', labelKey: 'appointmentsTitle', icon: 'fas fa-calendar-check' },
     { page: 'gorusme-formu', labelKey: 'interviewFormsTitle', icon: 'fas fa-file-signature' },
     { page: 'teklif-yaz', labelKey: 'offerManagement', icon: 'fas fa-file-invoice-dollar' },
+    { page: 'sales-pipeline', labelKey: 'sales-pipeline', icon: 'fas fa-stream' },
     { page: 'mutabakat', labelKey: 'reconciliation', icon: 'fas fa-handshake', roles: ['admin', 'muhasebe'] },
     { page: 'email-taslaklari', labelKey: 'emailDrafts', icon: 'fas fa-envelope-open-text' },
     { page: 'yapay-zeka', labelKey: 'aiHubTitle', icon: 'fas fa-robot' },
@@ -41,6 +44,7 @@ interface SidebarLeftProps {
 const SidebarLeft = ({ view, setView, isOpen, setIsOpen }: SidebarLeftProps) => {
     const { logout, currentUser } = useAuth();
     const { language, setLanguage, t } = useLanguage();
+    const { theme, toggleTheme } = useTheme();
 
     const handleLinkClick = (newPage: Page) => {
         setView({ page: newPage });
@@ -71,7 +75,7 @@ const SidebarLeft = ({ view, setView, isOpen, setIsOpen }: SidebarLeftProps) => 
                                 <a
                                     href="#"
                                     onClick={(e) => { e.preventDefault(); handleLinkClick(link.page); }}
-                                    className={`relative flex items-center justify-between rounded-md px-4 py-3 text-sm font-medium transition-colors ${isActive ? 'bg-cnk-accent-primary text-white' : 'hover:bg-cnk-accent-primary/10 text-cnk-sidebar-txt-dark'}`}
+                                    className={`relative flex items-center justify-between rounded-cnk-element px-4 py-3 text-sm font-medium ${isActive ? 'bg-cnk-accent-primary text-white' : 'hover:bg-cnk-accent-primary/10 text-cnk-sidebar-txt-dark'}`}
                                 >
                                     <div className="flex items-center gap-4">
                                         <i className={`${link.icon} w-5 text-center text-lg`}></i>
@@ -82,7 +86,7 @@ const SidebarLeft = ({ view, setView, isOpen, setIsOpen }: SidebarLeftProps) => 
                         );
                     })}
                     <li>
-                         <a href="#" onClick={(e) => {e.preventDefault(); logout();}} className="flex items-center gap-4 rounded-md px-4 py-3 text-sm font-medium transition-colors text-cnk-sidebar-txt-muted-dark hover:bg-cnk-accent-primary/10 hover:text-white">
+                         <a href="#" onClick={(e) => {e.preventDefault(); logout();}} className="flex items-center gap-4 rounded-cnk-element px-4 py-3 text-sm font-medium text-cnk-sidebar-txt-muted-dark hover:bg-cnk-accent-primary/10 hover:text-white">
                              <i className="fas fa-sign-out-alt w-5 text-center text-lg"></i>
                              <span>{t('loggedOut')}</span>
                          </a>
@@ -93,11 +97,19 @@ const SidebarLeft = ({ view, setView, isOpen, setIsOpen }: SidebarLeftProps) => 
                         id="language-select"
                         value={language}
                         onChange={(e) => setLanguage(e.target.value as 'tr' | 'en')}
-                        className="w-full cursor-pointer rounded-lg border border-slate-600 bg-slate-700 p-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cnk-accent-primary/50"
+                        className="w-full cursor-pointer rounded-cnk-element border border-slate-600 bg-slate-700 p-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cnk-accent-primary/50"
                     >
                         <option value="tr">Türkçe</option>
                         <option value="en">English</option>
                     </select>
+                     <button
+                        onClick={toggleTheme}
+                        className="mt-4 w-full flex items-center justify-between rounded-cnk-element border border-slate-600 bg-slate-700 p-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cnk-accent-primary/50"
+                        aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                    >
+                        <span>{theme === 'light' ? 'Açık Tema' : 'Koyu Tema'}</span>
+                        <i className={`fas ${theme === 'light' ? 'fa-sun text-amber-400' : 'fa-moon text-indigo-300'}`}></i>
+                    </button>
                 </div>
             </nav>
         </>

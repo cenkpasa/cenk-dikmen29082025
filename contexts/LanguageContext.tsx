@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
-import { MESSAGES } from '../constants';
+import { MESSAGES } from '@/constants';
 
 type Language = 'tr' | 'en';
 

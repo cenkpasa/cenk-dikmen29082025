@@ -1,9 +1,10 @@
+
 import React from 'react';
-import { useNotificationCenter } from '../../contexts/NotificationCenterContext';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { Notification } from '../../types';
-import { ViewState } from '../../App';
-import Button from '../common/Button';
+import { useNotificationCenter } from '@/contexts/NotificationCenterContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Notification } from '@/types';
+import { ViewState } from '@/App';
+import Button from '@/components/common/Button';
 
 interface NotificationPanelProps {
     setView: (view: ViewState) => void;

@@ -1,13 +1,26 @@
-import { User, Appointment, Invoice, StockItem, Customer, Offer, OfferItem, IncomingInvoice, OutgoingInvoice } from './types';
+
+
+import { User, Appointment, Invoice, StockItem, Customer, Offer, OfferItem, IncomingInvoice, OutgoingInvoice } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 // CONFIG
 export const PASSWORD_MIN_LENGTH = 6;
-export const WORKPLACE_COORDS = { latitude: 39.98, longitude: 32.75 }; // Example coords for Ankara
+export const WORKPLACE_COORDS = { latitude: 39.9806, longitude: 32.7555 }; // Proted Park İş Merkezi coordinates
+export const WORKPLACE_RADIUS_KM = 0.5; // 500 meters radius for check-in/out
+export const WORK_HOURS = {
+    // 0: Sunday, 1: Monday, ..., 6: Saturday
+    0: null, // Pazar Kapalı
+    1: { start: '08:00', end: '18:00', lunch: 1 }, // Pazartesi
+    2: { start: '08:00', end: '18:00', lunch: 1 }, // Salı
+    3: { start: '08:00', end: '18:00', lunch: 1 }, // Çarşamba
+    4: { start: '08:00', end: '18:00', lunch: 1 }, // Perşembe
+    5: { start: '08:00', end: '18:00', lunch: 1 }, // Cuma
+    6: { start: '08:00', end: '13:00', lunch: 0 }, // Cumartesi
+};
 
 // ASSETS
 export const ASSETS = {
-    CNK_LOGO_BASE64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAaUAAABDCAMAAAB838D2AAAAQlBMVEVHcEz/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AADJSSjlAAAAFXRSTlMAESJdmZqq7vCIiJmZImYiIiIiZogS8b2dAAADFklEQVR42u3b63KqQBCF4WxiL4sgoLz/Cz0gAylpSHHbaF6zftBNW5M0Tdf19gAAgABBBKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKKErD//+s8fR67K+l+28ufX0pP+vnn/y/a2182ffLw6eP9N39z3vTz13v8+79/fN2/r49f9o/f7/a9edv/f79//+/3+f//x/t+23f+/v//7//69f/n/f7v/Z/m//+r//fn/n/5//v/oP9/sP+43/v/61//vt//v//z/QMAAADgP6Fk/3//x88/f/959f/ef/9/8vT3/cf/n5/8fr/f+30+/+fv71//Xv//58f//r7/uJ//w1//33/u31+pFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSk...',
+    CNK_LOGO_BASE64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAaUAAABDCAMAAAB838D2AAAAQlBMVEVHcEz/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AAD/AADJSSjlAAAAFXRSTlMAESJdmZqq7vCIiJmZImYiIiIiZogS8b2dAAADFklEQVR42u3b63KqQBCF4WxiL4sgoLz/Cz0gAylpSHHbaF6zftBNW5M0Tdf19gAAgABBBKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKKErD//+s8fR67K+l+28ufX0pP+vnn/y/a2182ffLw6eP9N39z3vTz13v8+79/fN2/r49f9o/f7/a9edv/f79//+/3+f//x/t+23f+/v//7//69f/n/f7v/Z/m//+r//fn/n/5//v/oP9/sP+43/v/61//vt//v//z/QMAAADgP6Fk/3//x88/f/959f/ef/9/8vT3/cf/n5/8fr/f+30+/+fv71//Xv//58f//r7/uJ//w1//33/u31+pFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQKIUpAwRSkCiFKQMEUpAohSkDBFKQ...',
     BWORKS_LOGO_BASE64: 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTUwIDQwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0IHg9IjUiIHk9IjMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzM0MTU1IiBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMCI+QldvcmtzPC90ZXh0Pjwvc3ZnPg==',
     LOGIN_BG_CNK_OFFICE: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2832&auto=format&fit=crop'
 };
@@ -33,6 +46,8 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'appointmentsTitle': 'Randevular',
         'interviewFormsTitle': 'Görüşme Formları',
         'offerManagement': 'Teklif Yönetimi',
+        'offerManagementTitle': 'Teklifler',
+        'sales-pipeline': 'Satış Fırsatları',
         'reconciliation': 'Mutabakat',
         'reconciliations': 'Mutabakatlar',
         'aiHubTitle': 'Yapay Zeka Merkezi',
@@ -54,7 +69,7 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'actions': 'Eylemler',
         'status': 'Durum',
         'notes': 'Notlar',
-        'fieldsRequired': 'Lütfen zorunlu alanları doldurun.',
+        'fieldsRequired': 'Lütfen zorumlu alanları doldurun.',
         'genericError': 'Bir hata oluştu. Lütfen tekrar deneyin.',
         'permissionDenied': 'Bu işlem için yetkiniz yok.',
         'areYouSure': 'Emin misiniz?',
@@ -67,6 +82,12 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'copy': 'Kopyala',
         'copiedToClipboard': 'Panoya kopyalandı!',
         'invoices': 'Faturalar',
+        'offlineQueueAdd': 'İşlem çevrimdışı kuyruğuna eklendi. Bağlantı kurulduğunda senkronize edilecek.',
+        'success': 'Başarılı',
+        'error': 'Hata',
+        'warning': 'Uyarı',
+        'info': 'Bilgi',
+
 
         // --- Auth & Login ---
         'loggedInWelcome': 'Hoş geldiniz, {username}!',
@@ -123,6 +144,8 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'totalOutgoing': 'Toplam Giden Fatura',
         'reconciliationDifference': 'Mutabakat Farkı',
         'recentReconciliations': 'Son Mutabakatlar',
+        'pendingLeaveRequests': 'Bekleyen İzin Talepleri',
+        'activeOffers': 'Aktif Teklifler',
 
         // --- Customers ---
         'addNewCustomer': 'Yeni Müşteri Ekle',
@@ -308,6 +331,8 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'summarizeNotes': 'Notları Özetle',
         'aiSummary': 'Yapay Zeka Özeti',
         'saveSummary': 'Özeti Kaydet',
+        'aiSummaryPlaceholder': "Görüşme notları özetini buraya oluşturmak için 'Notları Özetle' butonuna tıklayın veya manuel olarak girin.",
+
 
         // --- Offer Form ---
         'createOffer': 'Teklif Oluştur',
@@ -342,6 +367,18 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'generateFollowUpEmail': 'Takip E-postası Oluştur',
         'aiGeneratedEmail': 'Yapay Zeka E-posta Taslağı',
         'saveEmail': 'E-postayı Kaydet',
+        'lostReason': 'Kaybetme Nedeni',
+
+        // --- Sales Pipeline ---
+        'draft': 'Taslak',
+        'sent': 'Gönderildi',
+        'negotiation': 'Görüşme',
+        'won': 'Kazanıldı',
+        'lost': 'Kaybedildi',
+        'offerDetails': 'Teklif Detayları',
+        'totalValue': 'Toplam Değer',
+        'offerCount': 'Teklif Sayısı',
+        'successRate': 'Başarı Oranı',
 
         // --- Email & Drafts ---
         'gmailSecurityWarningTitle': 'E-posta İşlevselliği Güncellemesi',
@@ -354,7 +391,6 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'noEmailDrafts': 'Henüz AI tarafından oluşturulmuş bir e-posta taslağı yok.',
         'sendWithEmailClient': 'E-posta Programı ile Gönder',
         'emailClientOpened': 'E-posta programınız açılıyor...',
-        'sent': 'Gönderildi',
         
         // --- AI Agent Insights ---
         'aiInsightFollowUpWithDraft': '{customerName} müşterisine gönderilen {teklifNo} numaralı teklifin takibi için bir e-posta taslağı hazırladım.',
@@ -411,7 +447,6 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'supplier': 'Tedarikçi',
         'taxID': 'Vergi No',
         'invoiceNo': 'Fatura No',
-        'draft': 'Taslak',
         'in_review': 'İncelemede',
         'rejectionReason': 'Reddetme Nedeni',
         'approve': 'Onayla',
@@ -464,9 +499,8 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'connect': 'Bağlan',
         'dataSync': 'Veri Senkronizasyonu',
         'customerListTitle': 'Müşteri Listesi',
-        'erpCustomerSyncDesc': 'ERP sistemindeki müşteri verilerini CRM\'e aktarın.',
-        'offerManagementTitle': 'Teklif Yönetimi',
-        'erpOfferSyncDesc': 'ERP sistemindeki teklifleri CRM\'e aktarın.',
+        'erpCustomersSyncDesc': 'ERP sistemindeki müşteri verilerini CRM\'e aktarın.',
+        'erpOffersSyncDesc': 'ERP sistemindeki teklifleri CRM\'e aktarın.',
         'erpStockSyncDesc': 'Güncel stok miktarlarını ve fiyatlarını ERP\'den çekin.',
         'salesInvoicesTitle': 'Satış Faturaları',
         'erpInvoiceSyncDesc': 'Kesilen faturaları satış takibi için CRM\'e aktarın.',
@@ -474,7 +508,7 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'syncOffers': 'Teklifleri Eşitle',
         'syncStock': 'Stokları Eşitle',
         'syncStockLevels': 'Stok Seviyelerini Eşitle',
-        'erpStockLevelSyncDesc': 'Depo bazlı stok seviyelerini ERP\'den çekin.',
+        'erpStockLevelsSyncDesc': 'Depo bazlı stok seviyelerini ERP\'den çekin.',
         'syncInvoices': 'Faturaları Eşitle',
         'syncDataSuccess': '{count} adet {type} verisi başarıyla eşitlendi.',
         'personnel': 'Personel',
@@ -506,8 +540,8 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'recordsUpdated': 'Kayıt Güncellendi',
         'syncIncomingInvoices': 'Gelen Faturaları Çek',
         'syncOutgoingInvoices': 'Giden Faturaları Çek',
-        'erpIncomingInvoiceSyncDesc': 'ERP\'den gelen (alış) faturalarını çekin.',
-        'erpOutgoingInvoiceSyncDesc': 'ERP\'den giden (satış) faturalarını çekin.',
+        'erpIncomingInvoicesSyncDesc': 'ERP\'den gelen (alış) faturalarını çekin.',
+        'erpOutgoingInvoicesSyncDesc': 'ERP\'den giden (satış) faturalarını çekin.',
         'warehouseStockLevels': 'Depo Stok Seviyeleri',
         'selectStockItemToViewLevels': 'Seviyeleri görmek için bir stok kalemi seçin.',
 
@@ -540,177 +574,30 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'avgConversionTime': 'Avg. Conversion Time',
         'avgSuccessfulOfferAmount': 'Avg. Successful Offer Amount',
         'totalAnalyses': 'Total Analyses',
-    },
-    en: {
-        // --- Sidebar & General ---
-        'dashboard': 'Dashboard',
-        'customerList': 'Customer List',
-        'emailTitle': 'Email',
-        'appointmentsTitle': 'Appointments',
-        'interviewFormsTitle': 'Interview Forms',
-        'offerManagement': 'Offer Management',
-        'reconciliation': 'Reconciliation',
-        'reconciliations': 'Reconciliations',
-        'aiHubTitle': 'AI Hub',
-        'personnelManagement': 'Personnel Management',
-        'locationTracking': 'Location Tracking',
-        'erpIntegration': 'ERP Integration',
-        'calculationTools': 'Calculation Tools',
-        'profileTitle': 'Profile',
-        'aiSettings': 'AI Settings',
-        'reports': 'Reports',
-        'emailDrafts': 'Email Drafts',
-        'mutabakat': 'Reconciliation',
-        'auditLog': 'Audit Log',
-        'save': 'Save',
-        'cancel': 'Cancel',
-        'edit': 'Edit',
-        'delete': 'Delete',
-        'view': 'View',
-        'actions': 'Actions',
-        'status': 'Status',
-        'notes': 'Notes',
-        'fieldsRequired': 'Please fill in the required fields.',
-        'genericError': 'An error occurred. Please try again.',
-        'permissionDenied': 'You do not have permission for this action.',
-        'areYouSure': 'Are you sure?',
-        'deleteConfirmation': 'Are you sure you want to delete this item? This action cannot be undone.',
-        'backToList': 'Back to List',
-        'unknownCustomer': 'Unknown Customer',
-        'defaultValue': 'Default',
-        'invoices': 'Invoices',
 
-        // --- Auth & Login ---
-        'loggedInWelcome': 'Welcome, {username}!',
-        'loggedOut': 'Log Out',
-        'userNotFound': 'User not found.',
-        'invalidPassword': 'Invalid password.',
-        'loginFormTitle': 'LOGIN FORM',
-        'username': 'Username',
-        'password': 'Password',
-        'keepSignedIn': 'Keep me signed in',
-        'forgotPassword': 'Forgot password',
-        'loginBtn': 'LOGIN',
-        'forgotPasswordPrompt': 'Enter your email to reset your password.',
-        'enterYourEmail': 'Enter your email',
-        'sendResetCode': 'Send Reset Code',
-        'backToLogin': 'Back to login',
-        'verifyCode': 'Verify Code',
-        'enterResetCode': 'Enter the verification code sent to your email.',
-        'verificationCode': 'Verification Code',
-        'setNewPassword': 'Set New Password',
-        'newPassword': 'New Password',
-        'confirmNewPassword': 'Confirm New Password',
-        'passwordsDoNotMatch': 'Passwords do not match.',
-        'passwordTooShort': 'Password must be at least {minLength} characters.',
-        'resetCodeSent': 'Password reset code has been sent to your email.',
-        'codeVerified': 'Code verified. You can now set your new password.',
-        'invalidCode': 'Invalid verification code.',
-        'resetPasswordSuccess': 'Your password has been reset successfully.',
-        'usernameExists': 'This username already exists.',
-        'registrationSuccess': 'Registration successful.',
-        'passwordRequired': 'Password is required.',
-
-        // --- Dashboard ---
-        'dashboard_totalCustomers': 'Total Customers',
-        'dashboard_pendingAppointments': 'Pending Appointments',
-        'dashboard_totalUsers': 'Total Personnel',
-        'dashboard_monthlySales': 'Total Sales This Month',
-        'totalTeamSales': 'Total Team Sales',
-        'welcomeMessage': 'Welcome, {name}!',
-        'monthlySalesTarget': 'Monthly Sales Target',
-        'achieved': 'Achieved',
-        'remaining': 'Remaining',
-        'getAISuggestionForTarget': 'Get AI Suggestion for Target',
-        'dashboard_yourSales': 'Your Sales This Month',
-        'dashboard_upcomingAppointments': 'Upcoming Appointments',
-        'barChartTitle': 'Weekly Activity',
-        'topSalesDonutTitle': 'Top Selling Plans',
-        'latestActivityTitle': 'Latest Activity',
-        'noRecentActivity': 'No recent activity.',
-        'aiAnalysisCenter': 'AI Analysis Center',
-        'aiNoInsights': 'Great job! The AI has not detected any urgent tasks or risks.',
-        'viewDetails': 'View Details',
-        'totalIncoming': 'Total Incoming',
-        'totalOutgoing': 'Total Outgoing',
-        'reconciliationDifference': 'Difference',
-        'recentReconciliations': 'Recent Reconciliations',
-
-        // --- Customers ---
-        'addNewCustomer': 'Add New Customer',
-        'editCustomer': 'Edit Customer',
-        'customerAdded': 'Customer added successfully.',
-        'customerUpdated': 'Customer updated successfully.',
-        'customerDeleted': 'Customer deleted.',
-        'searchCustomer': 'Search customer...',
-        'noCustomerYet': 'No customers added yet.',
-        'addFromExcel': 'Import from Excel',
-        'nameCompanyName': 'Name / Company Name',
-        'createdAt': 'Creation Date',
-        'customerDetail': 'Customer Detail',
-        'addAppointment': 'Add Appointment',
-        'activityTimeline': 'Activity Timeline',
-        'currentCode': 'Current Code',
-        'commercialTitle': 'Commercial Title',
-        'phone1': 'Phone 1',
-        'mobilePhone1': 'Mobile Phone 1',
-        'taxOffice': 'Tax Office',
-        'taxNumber': 'Tax Number',
-        'active': 'Active',
-        'passive': 'Passive',
-        'excelUploadError': 'Error reading Excel file.',
-        'excelUploadSuccess': '{count} new customers added successfully.',
-        'excelColumnMapping': 'Excel Column Mapping',
-        'crmField': 'CRM Field',
-        'excelColumn': 'Excel Column',
-        'dataPreview': 'Data Preview',
-        'confirmMappingAndPreview': 'Confirm Mapping & Preview',
-        'importConfirmation': 'Import Confirmation',
-        'recordsToBeImported': 'The following records will be imported. Please review and confirm.',
-        'confirmAndSave': 'Confirm and Save',
-        'generalInfo': 'General Information',
-        'aiAnalysis': 'AI Analysis',
-        'opportunityAnalysis': 'Opportunity Analysis',
-        'suggestNextStep': 'Suggest Next Step',
-        'sentimentAnalysis': 'Sentiment Analysis',
-        'analyze': 'Analyze',
-        'scanCard': 'Scan Business Card',
-        'nameRequired': 'Name / Company Name is required.',
-        'analysisDate': 'Analysis Date',
-        'invalidEmailFormat': 'Invalid email format.',
-        'duplicateInFile': 'Duplicate record within the file.',
-        'validationErrorsFound': 'Validation Errors Found',
-        'onlyValidRowsWillBeImported': 'Only valid rows will be imported. Do you want to continue?',
-        'errorColumnHeader': 'Error',
-        'noValidDataToImport': 'No valid data found to import.',
-        
-        // --- Personnel ---
-        'userCount': '{count} Users',
-        'customerCount': '{count} Customers',
-        'appointmentCount': '{count} Appointments',
-        'approved': 'Approved',
-        'rejected': 'Rejected',
-        'pending': 'Pending',
-        'leaveRequestSent': 'Your leave request has been successfully submitted for approval.',
-        'draft': 'Draft',
-        'in_review': 'In Review',
-        'sent': 'Sent',
-        'admin': 'Admin',
-        'muhasebe': 'Accounting',
-        'saha': 'Field Staff',
-        'approve': 'Approve',
-        'reject': 'Reject',
+        // Expense Report
+        'expenseReport': 'Mileage Log & Expense Report',
+        'employeeName': 'Employee Name',
+        'employeeId': 'Employee ID',
+        'vehicleDescription': 'Vehicle Description',
+        'authorizer': 'Authorizer',
+        'ratePerKm': 'Rate/km',
+        'coveredPeriod': 'Covered Period',
+        'totalDistance': 'Total Distance',
+        'totalReimbursement': 'Total Reimbursement',
+        'startLocation': 'Start Location',
+        'endLocation': 'End Location',
+        'odometerStart': 'Odometer Start',
+        'odometerEnd': 'Odometer End',
+        'distance': 'Distance',
+        'reimbursement': 'Reimbursement',
+        'totals': 'Totals',
+        'saveReport': 'Save Report',
+        'printReport': 'Print Report',
     }
 };
 
 // MOCK DATA
-export const DEFAULT_ADMIN: Omit<User, 'id'> = {
-    username: 'admin',
-    role: 'admin',
-    name: 'Admin User',
-    password: '1234'
-};
-// FIX: Added mock customer and appointment data that was missing.
 export const MOCK_CUSTOMERS: Omit<Customer, 'id' | 'createdAt'>[] = [
     {
         name: 'ABC Makina San. Tic. A.Ş.',
@@ -723,7 +610,8 @@ export const MOCK_CUSTOMERS: Omit<Customer, 'id' | 'createdAt'>[] = [
         email: 'info@abcmakina.com.tr',
         taxOffice: 'Ankara Kurumlar',
         taxNumber: '1112223333',
-        notes: 'Potansiyel yüksek. Yeni yatırım planları var.'
+        notes: 'Potansiyel yüksek. Yeni yatırım planları var.',
+        synced: true,
     },
     {
         name: 'DEF Metalurji Ltd. Şti.',
@@ -736,7 +624,8 @@ export const MOCK_CUSTOMERS: Omit<Customer, 'id' | 'createdAt'>[] = [
         email: 'info@defmetal.com.tr',
         taxOffice: 'İkitelli',
         taxNumber: '4445556666',
-        notes: 'Son teklife henüz dönüş yapmadı.'
+        notes: 'Son teklife henüz dönüş yapmadı.',
+        synced: true,
     },
 ];
 

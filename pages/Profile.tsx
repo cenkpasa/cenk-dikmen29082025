@@ -49,7 +49,7 @@ const Profile = () => {
 
     return (
         <div>
-            <div className="max-w-2xl rounded-xl border border-cnk-border-light bg-cnk-panel-light p-6 shadow-sm">
+            <div className="max-w-2xl rounded-cnk-card border border-cnk-border-light bg-cnk-panel-light p-6 shadow-md">
                 <h3 className="mb-4 text-xl font-semibold text-cnk-accent-primary">{t('userInfo')}</h3>
                 <div className="space-y-4">
                      <Input label={t('username')} id="prof_username" value={currentUser.username} readOnly />

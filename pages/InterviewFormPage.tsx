@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -301,27 +302,40 @@ const InterviewForm = ({ setView, interviewId }: InterviewFormProps) => {
                     ></textarea>
                 </div>
 
-                {/* AI Assistant */}
-                <div className="mt-4">
-                    <h3 className="text-lg font-semibold text-cnk-txt-primary-light mb-2">{t('aiAssistant')}</h3>
-                     <div className="flex flex-col gap-2">
-                        <Button type="button" onClick={handleGenerateSummary} isLoading={isAiLoading} icon="fas fa-robot" disabled={isReadOnly || !formState.notlar}>
-                            {t('summarizeNotes')}
-                        </Button>
-                        {(isAiLoading || formState.aiSummary) && (
-                            <div className="p-3 bg-slate-50 rounded-lg">
-                                <h4 className="font-semibold text-cnk-txt-secondary-light mb-2">{t('aiSummary')}</h4>
-                                {isAiLoading ? <Loader size="sm" /> : (
-                                    <textarea
-                                        value={formState.aiSummary || ''}
-                                        onChange={e => setFormState(prev => ({...prev, aiSummary: e.target.value}))}
-                                        readOnly={isReadOnly}
-                                        rows={8}
-                                        className="w-full p-2 border border-cnk-border-light rounded-md"
-                                    />
-                                )}
+                {/* AI Summary Section */}
+                <div className="mt-6 p-4 rounded-cnk-card bg-cnk-accent-primary/5 border border-cnk-accent-primary/20">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-lg font-bold text-cnk-accent-primary flex items-center gap-2">
+                            <i className="fas fa-robot"></i>
+                            <span>{t('aiSummary')}</span>
+                        </h3>
+                        {!isReadOnly && (
+                            <Button
+                                type="button"
+                                onClick={handleGenerateSummary}
+                                isLoading={isAiLoading}
+                                icon="fas fa-wand-magic-sparkles"
+                                disabled={!formState.notlar || isAiLoading}
+                                variant="secondary"
+                            >
+                                {t('summarizeNotes')}
+                            </Button>
+                        )}
+                    </div>
+                    <div className="relative">
+                        {isAiLoading && (
+                            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-md bg-cnk-panel-light/70">
+                                <Loader />
                             </div>
                         )}
+                        <textarea
+                            value={formState.aiSummary || ''}
+                            onChange={(e) => setFormState(prev => ({ ...prev, aiSummary: e.target.value }))}
+                            readOnly={isReadOnly}
+                            rows={8}
+                            placeholder={t('aiSummaryPlaceholder')}
+                            className="w-full rounded-md border border-cnk-border-light bg-cnk-panel-light p-2 text-cnk-txt-secondary-light shadow-sm focus:border-cnk-accent-primary focus:outline-none focus:ring-1 focus:ring-cnk-accent-primary"
+                        />
                     </div>
                 </div>
 

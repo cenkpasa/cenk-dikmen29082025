@@ -3,7 +3,7 @@ import { useData } from '../contexts/DataContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Offer, OfferItem, Customer } from '../types';
+import { Offer, OfferItem, Customer, OfferStatus } from '../types';
 import DataTable from '../components/common/DataTable';
 import Button from '../components/common/Button';
 import { downloadOfferAsPdf, getOfferHtml } from '../services/pdfService';
@@ -16,6 +16,7 @@ import Modal from '../components/common/Modal';
 import { v4 as uuidv4 } from 'uuid';
 import Autocomplete from '../components/common/Autocomplete';
 import { formatCurrency, formatDate } from '../utils/formatting';
+import Input from '../components/common/Input';
 
 interface OfferPageProps {
     view: ViewState;
@@ -44,6 +45,17 @@ const OfferListPage = ({ setView }: OfferListPageProps) => {
         }
         setIsDownloading(false);
     };
+    
+    const getStatusClass = (status: OfferStatus) => {
+        const classes = {
+            draft: 'bg-gray-200 text-gray-800',
+            sent: 'bg-blue-200 text-blue-800',
+            negotiation: 'bg-yellow-200 text-yellow-800',
+            won: 'bg-green-200 text-green-800',
+            lost: 'bg-red-200 text-red-800',
+        };
+        return classes[status] || classes.draft;
+    };
 
     const columns = [
         { header: t('offerCode'), accessor: (item: Offer) => <span className="font-mono text-sm">{item.teklifNo}</span> },
@@ -51,7 +63,14 @@ const OfferListPage = ({ setView }: OfferListPageProps) => {
             header: t('customers'), 
             accessor: (item: Offer) => customers.find(c => c.id === item.customerId)?.name || t('unknownCustomer')
         },
-        { header: t('offerDetails'), accessor: (item: Offer) => item.firma.yetkili },
+        { 
+            header: t('status'), 
+            accessor: (item: Offer) => (
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(item.status)}`}>
+                    {t(item.status)}
+                </span>
+            )
+        },
         { header: t('amount'), accessor: (item: Offer) => formatCurrency(item.genelToplam, item.currency), className: 'font-semibold' },
         { header: t('createdAt'), accessor: (item: Offer) => formatDate(item.createdAt) },
         {
@@ -96,14 +115,15 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
     const [existingOffer, setExistingOffer] = useState<Offer | null>(null);
 
     // State only holds the source of truth, not derived values like totals.
-    const [formState, setFormState] = useState<Omit<Offer, 'id' | 'createdAt' | 'teklifNo' | 'toplam' | 'kdv' | 'genelToplam' | 'aiFollowUpEmail'> & { aiFollowUpEmail?: string }>({
+    const [formState, setFormState] = useState<Omit<Offer, 'id' | 'createdAt' | 'teklifNo' | 'toplam' | 'kdv' | 'genelToplam' | 'aiFollowUpEmail'>>({
         customerId: '',
         currency: 'TRY',
         firma: { yetkili: '', telefon: '', eposta: '', vade: '', teklifTarihi: new Date().toISOString().slice(0,10) },
         teklifVeren: { yetkili: currentUser?.name || '', telefon: '', eposta: '' },
         items: [],
         notlar: '',
-        aiFollowUpEmail: ''
+        status: 'draft',
+        statusReason: ''
     });
     
     const [aiEmail, setAiEmail] = useState('');
@@ -134,7 +154,8 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
                 teklifVeren: offer.teklifVeren,
                 items: offer.items,
                 notlar: offer.notlar,
-                aiFollowUpEmail: offer.aiFollowUpEmail
+                status: offer.status || 'draft',
+                statusReason: offer.statusReason || ''
             });
             setAiEmail(offer.aiFollowUpEmail || '');
         }
@@ -155,12 +176,12 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
         }));
     };
     
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>, section: 'firma' | 'teklifVeren' | '') => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>, section?: 'firma' | 'teklifVeren') => {
         const { id, value } = e.target;
         if (section) {
             setFormState(prev => ({ ...prev, [section]: {...prev[section], [id]: value }}));
         } else {
-            setFormState(prev => ({ ...prev, [id]: value as 'TRY' | 'USD' | 'EUR' }));
+            setFormState(prev => ({ ...prev, [id]: value as any }));
         }
     };
     
@@ -266,7 +287,7 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
         showNotification('emailSaved', 'success');
     };
 
-    const InputField = ({label, id, value, onChange, section, readOnly=false, type="text"}: {label: string, id: string, value: string, onChange: (e: ChangeEvent<HTMLInputElement>) => void, section: 'firma' | 'teklifVeren' | '', readOnly?: boolean, type?: string}) => (
+    const InputField = ({label, id, value, onChange, section, readOnly=false, type="text"}: {label: string, id: string, value: string, onChange: (e: ChangeEvent<HTMLInputElement>) => void, section?: 'firma' | 'teklifVeren', readOnly?: boolean, type?: string}) => (
         <div className="flex items-center"><span className="w-24 font-semibold">{label}</span><span>:</span><input type={type} id={id} value={value} onChange={onChange} readOnly={readOnly} className="ml-2 flex-grow bg-transparent focus:outline-none focus:bg-slate-100 p-1 rounded"/></div>
     );
     
@@ -301,7 +322,8 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
                         <InputField label={t('email')} id="eposta" value={formState.firma.eposta} onChange={(e) => handleInputChange(e, 'firma')} readOnly={isReadOnly} section="firma" />
                         <InputField label={t('vade')} id="vade" value={formState.firma.vade} onChange={(e) => handleInputChange(e, 'firma')} readOnly={isReadOnly} section="firma" />
                         <InputField label={t('date')} id="teklifTarihi" type="date" value={formState.firma.teklifTarihi} onChange={(e) => handleInputChange(e, 'firma')} readOnly={isReadOnly} section="firma" />
-                        <InputField label={t('teklifNo')} id="teklifNo" value={existingOffer?.teklifNo || 'Otomatik'} onChange={() => {}} section="" readOnly={true}/>
+                        {/* Fix: Removed invalid `section` prop */}
+                        <InputField label={t('teklifNo')} id="teklifNo" value={existingOffer?.teklifNo || 'Otomatik'} onChange={() => {}} readOnly={true}/>
                     </div>
                     <div className="border-2 border-cnk-txt-primary-light p-2 space-y-1">
                         <h3 className="font-bold">Teklif Veren Firma:</h3>
@@ -309,12 +331,24 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
                         <InputField label={t('phone')} id="telefon" value={formState.teklifVeren.telefon} onChange={(e) => handleInputChange(e, 'teklifVeren')} readOnly={isReadOnly} section="teklifVeren" />
                         <InputField label={t('email')} id="eposta" value={formState.teklifVeren.eposta} onChange={(e) => handleInputChange(e, 'teklifVeren')} readOnly={isReadOnly} section="teklifVeren" />
                         <div className="flex items-center"><span className="w-24 font-semibold">Para Birimi</span><span>:</span>
-                            <select id="currency" value={formState.currency} onChange={(e) => handleInputChange(e, '')} disabled={isReadOnly} className="ml-2 flex-grow bg-transparent focus:outline-none focus:bg-slate-100 p-1 rounded">
+                            <select id="currency" value={formState.currency} onChange={(e) => handleInputChange(e)} disabled={isReadOnly} className="ml-2 flex-grow bg-transparent focus:outline-none focus:bg-slate-100 p-1 rounded">
                                 <option value="TRY">TRY (₺)</option>
                                 <option value="USD">USD ($)</option>
                                 <option value="EUR">EUR (€)</option>
                             </select>
                         </div>
+                         <div className="flex items-center"><span className="w-24 font-semibold">{t('status')}</span><span>:</span>
+                            <select id="status" value={formState.status} onChange={(e) => handleInputChange(e)} disabled={isReadOnly} className="ml-2 flex-grow bg-transparent focus:outline-none focus:bg-slate-100 p-1 rounded">
+                                <option value="draft">{t('draft')}</option>
+                                <option value="sent">{t('sent')}</option>
+                                <option value="negotiation">{t('negotiation')}</option>
+                                <option value="won">{t('won')}</option>
+                                <option value="lost">{t('lost')}</option>
+                            </select>
+                        </div>
+                        {formState.status === 'lost' && (
+                            <InputField label={t('lostReason')} id="statusReason" value={formState.statusReason || ''} onChange={(e) => handleInputChange(e)} readOnly={isReadOnly} />
+                        )}
                     </div>
                 </div>
                 
@@ -364,7 +398,7 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
                 <div className="grid grid-cols-3 gap-6 mt-4 text-sm">
                     <div className="col-span-2 border-2 border-cnk-txt-primary-light p-2">
                         <label htmlFor="notlar" className="font-bold">TEKLİF NOT:</label>
-                        <textarea id="notlar" value={formState.notlar} onChange={(e) => setFormState(prev => ({...prev, notlar: e.target.value}))} readOnly={isReadOnly} rows={4} className="w-full mt-1 p-1 focus:outline-none focus:bg-slate-100"></textarea>
+                        <textarea id="notlar" value={formState.notlar} onChange={(e) => handleInputChange(e)} readOnly={isReadOnly} rows={4} className="w-full mt-1 p-1 focus:outline-none focus:bg-slate-100"></textarea>
                     </div>
                     <div className="border-2 border-cnk-txt-primary-light">
                         <div className="flex"><div className="w-1/2 p-1 bg-cnk-accent-pink text-white font-bold border border-cnk-txt-primary-light">TOPLAM</div><div className="w-1/2 p-1 text-right border border-cnk-txt-primary-light">{formatCurrency(toplam, formState.currency)}</div></div>

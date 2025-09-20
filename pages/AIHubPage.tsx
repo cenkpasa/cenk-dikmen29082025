@@ -44,9 +44,9 @@ const AICard = ({ title, description, icon, placeholder, buttonText, onAction, i
     };
 
     return (
-        <div className="rounded-xl border border-cnk-border-light bg-cnk-panel-light p-6 shadow-sm flex flex-col">
+        <div className="rounded-cnk-card border border-cnk-border-light bg-cnk-panel-light p-6 shadow-md flex flex-col">
             <div className="flex items-start gap-4 mb-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cnk-accent-primary/10 text-cnk-accent-primary text-2xl">
+                <div className="flex h-12 w-12 items-center justify-center rounded-cnk-element bg-cnk-accent-primary/10 text-cnk-accent-primary text-2xl">
                     <i className={`fas ${icon}`}></i>
                 </div>
                 <div>
@@ -61,7 +61,7 @@ const AICard = ({ title, description, icon, placeholder, buttonText, onAction, i
                         onChange={(e) => setInput(e.target.value)}
                         placeholder={placeholder}
                         rows={5}
-                        className="w-full flex-grow mt-1 p-2 border border-cnk-border-light bg-cnk-bg-light rounded-md"
+                        className="w-full flex-grow mt-1 p-2 border border-cnk-border-light bg-cnk-bg-light rounded-cnk-element"
                     />
                 ) : (
                     <input
@@ -69,12 +69,12 @@ const AICard = ({ title, description, icon, placeholder, buttonText, onAction, i
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder={placeholder}
-                        className="w-full mt-1 p-2 border border-cnk-border-light bg-cnk-bg-light rounded-md"
+                        className="w-full mt-1 p-2 border border-cnk-border-light bg-cnk-bg-light rounded-cnk-element"
                     />
                 )}
                 <Button onClick={handleAction} isLoading={isLoading} className="mt-3">{buttonText}</Button>
                 {output && (
-                    <div className="mt-4 p-3 bg-cnk-bg-light rounded-md border border-cnk-border-light flex-grow">
+                    <div className="mt-4 p-3 bg-cnk-bg-light rounded-cnk-element border border-cnk-border-light flex-grow">
                         <h3 className="font-semibold text-cnk-accent-primary">{t('aiHubOutput')}:</h3>
                         <p className="text-cnk-txt-secondary-light whitespace-pre-wrap text-sm">{output}</p>
                     </div>

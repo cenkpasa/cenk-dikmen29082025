@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const BarChart = () => {
     const { t } = useLanguage();
@@ -10,7 +10,7 @@ const BarChart = () => {
     ];
 
     return (
-        <div className="bg-cnk-panel-light p-5 rounded-xl shadow-sm border border-cnk-border-light h-full">
+        <div className="bg-cnk-panel-light p-5 rounded-cnk-card border border-cnk-border-light h-full">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold text-cnk-txt-primary-light">{t('barChartTitle')}</h3>
                 <button className="text-sm text-cnk-txt-muted-light bg-cnk-bg-light px-3 py-1 rounded-md hover:bg-cnk-border-light">

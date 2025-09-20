@@ -1,8 +1,8 @@
 import React from 'react';
-import { useNotificationCenter } from '../../contexts/NotificationCenterContext';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { ViewState } from '../../App';
-import { Notification } from '../../types';
+import { useNotificationCenter } from '@/contexts/NotificationCenterContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { ViewState } from '@/App';
+import { Notification } from '@/types';
 
 interface LatestActivityProps {
     setView: (view: ViewState) => void;
@@ -36,7 +36,7 @@ const LatestActivity = ({ setView }: LatestActivityProps) => {
     };
 
     return (
-        <div className="bg-cnk-panel-light p-5 rounded-xl shadow-sm border border-cnk-border-light h-full">
+        <div className="bg-cnk-panel-light p-5 rounded-cnk-card border border-cnk-border-light h-full">
             <h3 className="font-semibold text-cnk-txt-primary-light mb-4">{t('latestActivityTitle')}</h3>
             {latestActivities.length > 0 ? (
                 <ul className="space-y-4">

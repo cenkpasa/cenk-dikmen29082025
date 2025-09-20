@@ -1,3 +1,5 @@
+
+
 export interface LeaveRequest {
     id: string;
     userId: string; 
@@ -88,6 +90,7 @@ export interface Customer {
     aiSentimentAnalysis?: { result: string; timestamp: string; };
     aiOpportunityAnalysis?: { result: string; timestamp: string; };
     aiNextStepSuggestion?: { result: string; timestamp: string; };
+    synced?: boolean;
 }
 
 export interface Appointment {
@@ -101,6 +104,7 @@ export interface Appointment {
     notes?: string;
     reminder?: string;
     createdAt?: string;
+    status?: 'active' | 'cancelled';
 }
 
 export interface Interview {
@@ -143,6 +147,8 @@ export interface OfferItem {
     teslimSuresi: string;
 }
 
+export type OfferStatus = 'draft' | 'sent' | 'negotiation' | 'won' | 'lost';
+
 export interface Offer {
     id: string;
     teklifNo: string;
@@ -167,6 +173,8 @@ export interface Offer {
     kdv: number;
     genelToplam: number;
     aiFollowUpEmail?: string;
+    status: OfferStatus;
+    statusReason?: string;
 }
 
 export interface StockItem {
@@ -228,6 +236,7 @@ export interface OutgoingInvoice {
     tutar: number;
     currency: 'TRY' | 'USD' | 'EUR';
     description?: string;
+    userId: string; // Link to the user/salesperson
 }
 
 export interface ErpSettings {
@@ -246,7 +255,7 @@ export interface ErpSettings {
     lastSyncOutgoingInvoices?: string;
 }
 
-export type Page = 'dashboard' | 'customers' | 'email' | 'appointments' | 'gorusme-formu' | 'teklif-yaz' | 'personnel' | 'hesaplama-araclari' | 'profile' | 'yapay-zeka' | 'konum-takip' | 'erp-entegrasyonu' | 'ai-ayarlari' | 'raporlar' | 'email-taslaklari' | 'mutabakat' | 'audit-log';
+export type Page = 'dashboard' | 'customers' | 'email' | 'appointments' | 'gorusme-formu' | 'teklif-yaz' | 'personnel' | 'hesaplama-araclari' | 'profile' | 'yapay-zeka' | 'konum-takip' | 'erp-entegrasyonu' | 'ai-ayarlari' | 'raporlar' | 'email-taslaklari' | 'mutabakat' | 'audit-log' | 'sales-pipeline';
 
 export interface Notification {
     id: string;
@@ -349,4 +358,46 @@ export interface ShiftAssignment {
     personnelId: string;
     shiftTemplateId: string;
     date: string; // "YYYY-MM-DD"
+}
+
+export interface SyncQueueItem {
+    id?: number;
+    type: 'add-customer'; // This can be expanded with more types like 'update-customer'
+    payload: Customer;
+    timestamp: number;
+}
+export interface TripRecord {
+    id: string;
+    userId: string;
+    date: string; // YYYY-MM-DD
+    startLocation: string;
+    endLocation: string;
+    notes: string;
+    odometerStart: number;
+    odometerEnd: number;
+}
+
+export interface TimesheetEntry {
+    date: string; // YYYY-MM-DD
+    dayOfWeek: number; // 0 for Sunday, 1 for Monday...
+    status: 'work' | 'leave' | 'weekend' | 'absent';
+    checkIn: string | null; // HH:mm
+    checkOut: string | null; // HH:mm
+    totalHours: number;
+    overtimeHours: number;
+    missingHours: number;
+    leaveType?: string;
+}
+
+export interface PayrollData {
+    grossSalary: number;
+    sgkWorkerShare: number;
+    unemploymentWorkerShare: number;
+    incomeTaxBase: number;
+    incomeTax: number;
+    stampTax: number;
+    netSalary: number;
+    sgkEmployerShare: number;
+    unemploymentEmployerShare: number;
+    totalEmployerCost: number;
 }

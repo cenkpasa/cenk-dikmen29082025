@@ -1,5 +1,7 @@
+
+
 import React, { ReactNode } from 'react';
-import EmptyState from './EmptyState';
+import EmptyState from '@/components/common/EmptyState';
 
 interface Column<T> {
     header: string;
@@ -11,10 +13,11 @@ interface DataTableProps<T> {
     columns: Column<T>[];
     data: T[];
     emptyStateMessage?: string;
+    onRowContextMenu?: (item: T, event: React.MouseEvent) => void;
 }
 
 const DataTable = <T,>(props: DataTableProps<T>) => {
-    const { columns, data, emptyStateMessage = "Gösterilecek veri yok." } = props;
+    const { columns, data, emptyStateMessage = "Gösterilecek veri yok.", onRowContextMenu } = props;
 
     return (
         <div className="overflow-x-auto rounded-lg border border-cnk-border-light bg-cnk-panel-light">
@@ -31,7 +34,11 @@ const DataTable = <T,>(props: DataTableProps<T>) => {
                 <tbody>
                     {data.length > 0 ? (
                         data.map((item, rowIndex) => (
-                            <tr key={rowIndex} className="border-b border-cnk-border-light hover:bg-cnk-bg-light">
+                            <tr 
+                                key={rowIndex} 
+                                className="border-b border-cnk-border-light hover:bg-cnk-bg-light"
+                                onContextMenu={onRowContextMenu ? (e) => onRowContextMenu(item, e) : undefined}
+                            >
                                 {columns.map((col, colIndex) => (
                                     <td key={colIndex} className={`px-6 py-4 ${col.className || ''}`}>
                                         {col.accessor(item)}

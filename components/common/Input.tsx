@@ -25,7 +25,7 @@ const Input = ({ label, icon, id, containerClassName = '', variant = 'default', 
             )}
             <input
                 id={id}
-                className={`w-full rounded-lg border shadow-sm transition duration-150 ease-in-out focus:outline-none focus:ring-2 ${variantClasses[variant]}`}
+                className={`w-full rounded-cnk-element border shadow-sm focus:outline-none focus:ring-2 ${variantClasses[variant]}`}
                 {...props}
             />
         </div>

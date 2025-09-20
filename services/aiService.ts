@@ -1,5 +1,6 @@
-import { Offer, Customer } from '../types';
-import { api } from './apiService';
+
+import { Offer, Customer } from '@/types';
+import { api } from '@/services/apiService';
 
 const callAI = async (prompt: string): Promise<{ success: boolean; text: string }> => {
     try {

@@ -1,16 +1,23 @@
+
+
+
+
+
+
 import React from 'react';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { ViewState } from '../../App';
-import NotificationBell from './NotificationBell';
-import CnkLogo from '../assets/CnkLogo';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { ViewState } from '@/App';
+import NotificationBell from '@/components/layout/NotificationBell';
+import CnkLogo from '@/components/assets/CnkLogo';
 
 interface HeaderProps {
     view: ViewState;
     setView: (view: ViewState) => void;
     onToggleLeftSidebar: () => void;
+    onToggleRightSidebar: () => void;
 }
 
-const Header = ({ view, setView, onToggleLeftSidebar }: HeaderProps) => {
+const Header = ({ view, setView, onToggleLeftSidebar, onToggleRightSidebar }: HeaderProps) => {
     const { t } = useLanguage();
 
     const PAGE_TITLES: Record<string, string> = {
@@ -52,6 +59,9 @@ const Header = ({ view, setView, onToggleLeftSidebar }: HeaderProps) => {
 
             <div className="flex items-center gap-4">
                 <NotificationBell setView={setView}/>
+                <button onClick={onToggleRightSidebar} className="text-xl text-cnk-txt-muted-light xl:hidden">
+                    <i className="fas fa-columns"></i>
+                </button>
             </div>
         </header>
     );

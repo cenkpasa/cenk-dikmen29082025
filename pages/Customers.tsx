@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+
+
+import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNotification } from '../contexts/NotificationContext';
@@ -11,22 +13,24 @@ import Modal from '../components/common/Modal';
 import CustomerDetailModal from '../components/customers/CustomerDetailModal';
 import { ViewState } from '../App';
 import * as XLSX from 'xlsx';
-import ExcelMappingModal from '../components/customers/ExcelMappingModal';
+import { ExcelMappingModal } from '../components/customers/ExcelMappingModal';
 import ImportConfirmationModal from '../components/customers/ImportConfirmationModal';
 import { formatDate } from '../utils/formatting';
+import ContextMenu from '../components/common/ContextMenu';
+import { useContextMenu } from '../hooks/useContextMenu';
 
-const Customers = ({ setView }: { setView: (view: ViewState) => void; }) => {
-    const { customers, deleteCustomer, bulkAddCustomers } = useData();
+const Customers = ({ setView, view }: { setView: (view: ViewState) => void; view: ViewState }) => {
+    const { customers, archiveCustomer, bulkAddCustomers } = useData();
     const { t } = useLanguage();
     const { showNotification } = useNotification();
     const { currentUser } = useAuth();
     
     // State for modals
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-    const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+    const [isConfirmArchiveOpen, setIsConfirmArchiveOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-    const [customerToDelete, setCustomerToDelete] = useState<string | null>(null);
+    const [customerToArchive, setCustomerToArchive] = useState<string | null>(null);
 
     // State for Excel Import Flow
     const [isMapperModalOpen, setIsMapperModalOpen] = useState(false);
@@ -35,7 +39,25 @@ const Customers = ({ setView }: { setView: (view: ViewState) => void; }) => {
     const [mappedCustomers, setMappedCustomers] = useState<Omit<Customer, 'id' | 'createdAt'>[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     
+    // State and handlers for Context Menu
+    const { menuState, handleContextMenu, handleClose } = useContextMenu();
+    const [contextMenuCustomer, setContextMenuCustomer] = useState<Customer | null>(null);
+
     const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'muhasebe';
+    
+    const handleView = (customer: Customer) => {
+        setSelectedCustomer(customer);
+        setIsDetailModalOpen(true);
+    };
+
+    useEffect(() => {
+        if (view.id && customers.length > 0) {
+            const customerToView = customers.find(c => c.id === view.id);
+            if (customerToView) {
+                handleView(customerToView);
+            }
+        }
+    }, [view.id, customers]);
 
     const handleAdd = () => {
         setSelectedCustomer(null);
@@ -51,27 +73,22 @@ const Customers = ({ setView }: { setView: (view: ViewState) => void; }) => {
         setIsFormModalOpen(true);
     };
     
-    const handleView = (customer: Customer) => {
-        setSelectedCustomer(customer);
-        setIsDetailModalOpen(true);
-    };
-    
-    const openDeleteConfirm = (customerId: string) => {
+    const openArchiveConfirm = (customerId: string) => {
         if (!canEdit) {
             showNotification('permissionDenied', 'error');
             return;
         }
-        setCustomerToDelete(customerId);
-        setIsConfirmDeleteOpen(true);
+        setCustomerToArchive(customerId);
+        setIsConfirmArchiveOpen(true);
     };
 
-    const handleDelete = () => {
-        if (customerToDelete) {
-            deleteCustomer(customerToDelete);
-            showNotification('customerDeleted', 'success');
+    const handleArchive = () => {
+        if (customerToArchive) {
+            archiveCustomer(customerToArchive);
+            showNotification('customerUpdated', 'success');
         }
-        setIsConfirmDeleteOpen(false);
-        setCustomerToDelete(null);
+        setIsConfirmArchiveOpen(false);
+        setCustomerToArchive(null);
     };
 
     // --- Excel Import Handlers ---
@@ -119,9 +136,32 @@ const Customers = ({ setView }: { setView: (view: ViewState) => void; }) => {
         setMappedCustomers([]);
     };
 
-    // --- Table Columns ---
+    // --- Table & Context Menu Handlers ---
+    const handleRowContextMenu = (item: Customer, event: React.MouseEvent) => {
+        setContextMenuCustomer(item);
+        handleContextMenu(event);
+    };
+
+    // FIX: The array items now correctly match the narrowed MenuItem types.
+    const contextMenuItems = contextMenuCustomer ? [
+        { label: t('view'), icon: 'fa-eye', action: () => handleView(contextMenuCustomer) },
+        { label: t('edit'), icon: 'fa-edit', action: () => handleEdit(contextMenuCustomer), disabled: !canEdit },
+        { isSeparator: true as const },
+        { label: 'Arşivle', icon: 'fa-archive', action: () => openArchiveConfirm(contextMenuCustomer.id), disabled: !canEdit }
+    ] : [];
+
     const columns = [
-        { header: t('nameCompanyName'), accessor: (item: Customer) => <span className="font-medium text-cnk-accent-primary">{item.name}</span> },
+        { 
+            header: t('nameCompanyName'), 
+            accessor: (item: Customer) => (
+                <div className="flex items-center">
+                    <span className="font-medium text-cnk-accent-primary">{item.name}</span>
+                    {item.synced === false && (
+                        <i className="fas fa-cloud-upload-alt text-amber-500 ml-2 animate-pulse" title="Senkronize ediliyor..."></i>
+                    )}
+                </div>
+            )
+        },
         { header: t('email'), accessor: (item: Customer) => item.email || '-' },
         { header: t('phone'), accessor: (item: Customer) => item.phone1 || '-' },
         { header: t('createdAt'), accessor: (item: Customer) => formatDate(item.createdAt) },
@@ -133,7 +173,7 @@ const Customers = ({ setView }: { setView: (view: ViewState) => void; }) => {
                     {canEdit && (
                         <>
                            <Button variant="info" size="sm" onClick={() => handleEdit(item)} icon="fas fa-edit" title={t('edit')} />
-                           <Button variant="danger" size="sm" onClick={() => openDeleteConfirm(item.id)} icon="fas fa-trash" title={t('delete')} />
+                           <Button variant="danger" size="sm" onClick={() => openArchiveConfirm(item.id)} icon="fas fa-archive" title={'Arşivle'} />
                         </>
                     )}
                 </div>
@@ -155,8 +195,18 @@ const Customers = ({ setView }: { setView: (view: ViewState) => void; }) => {
                 columns={columns}
                 data={customers}
                 emptyStateMessage={t('noCustomerYet')}
+                onRowContextMenu={handleRowContextMenu}
             />
             
+            {menuState.isOpen && contextMenuCustomer && (
+                <ContextMenu
+                    isOpen={menuState.isOpen}
+                    position={menuState.position}
+                    onClose={handleClose}
+                    items={contextMenuItems}
+                />
+            )}
+
             {/* --- Modals --- */}
             <CustomerForm
                 isOpen={isFormModalOpen}
@@ -166,24 +216,30 @@ const Customers = ({ setView }: { setView: (view: ViewState) => void; }) => {
             {selectedCustomer && (
                 <CustomerDetailModal
                     isOpen={isDetailModalOpen}
-                    onClose={() => setIsDetailModalOpen(false)}
+                    onClose={() => {
+                        setIsDetailModalOpen(false);
+                        // Clear the ID from the view state if it was set by the command palette
+                        if (view.id) {
+                            setView({ page: 'customers' });
+                        }
+                    }}
                     customer={selectedCustomer}
                     onEdit={handleEdit}
                     setView={setView}
                 />
             )}
              <Modal
-                isOpen={isConfirmDeleteOpen}
-                onClose={() => setIsConfirmDeleteOpen(false)}
+                isOpen={isConfirmArchiveOpen}
+                onClose={() => setIsConfirmArchiveOpen(false)}
                 title={t('areYouSure')}
                 footer={
                     <>
-                        <Button variant="secondary" onClick={() => setIsConfirmDeleteOpen(false)}>{t('cancel')}</Button>
-                        <Button variant="danger" onClick={handleDelete}>{t('delete')}</Button>
+                        <Button variant="secondary" onClick={() => setIsConfirmArchiveOpen(false)}>{t('cancel')}</Button>
+                        <Button variant="danger" onClick={handleArchive}>Arşivle</Button>
                     </>
                 }
             >
-                <p>{t('deleteConfirmation')}</p>
+                <p>Bu müşteriyi arşivlemek istediğinizden emin misiniz? Müşteri pasif duruma getirilecektir.</p>
             </Modal>
             {isMapperModalOpen && (
                 <ExcelMappingModal 

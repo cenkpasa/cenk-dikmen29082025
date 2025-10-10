@@ -1,4 +1,3 @@
-
 // src/services/apiService.ts
 // IMPORTANT: This file simulates communication with a backend server.
 // In a real application, this would make fetch/axios requests to a real API.
@@ -69,5 +68,24 @@ export const api = {
         return { success: true, messageKey: 'codeVerified' };
     }
     return { success: false, messageKey: 'invalidCode' };
+  },
+
+  async getChatResponse(message: string): Promise<{ success: boolean; text: string }> {
+    console.log(`[API Sim] Getting chat response for: "${message}"`);
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate thinking
+
+    const lowerCaseMessage = message.toLowerCase();
+
+    if (lowerCaseMessage.includes('merhaba') || lowerCaseMessage.includes('selam')) {
+        return { success: true, text: 'Merhaba! Sana nasıl yardımcı olabilirim?' };
+    } else if (lowerCaseMessage.includes('nasılsın')) {
+        return { success: true, text: 'Harikayım! Kodlarım her zamanki gibi kusursuz çalışıyor. Senin için ne yapabilirim?' };
+    } else if (lowerCaseMessage.includes('proje')) {
+        return { success: true, text: 'Projelerimi görmek için menüdeki "Projelerim" linkine tıklayabilirsin.' };
+    } else if (lowerCaseMessage.includes('teşekkür')) {
+        return { success: true, text: 'Rica ederim! Başka bir sorun olursa çekinme, ben buradayım.' };
+    } else {
+        return { success: true, text: 'Hmm, bu konuyu tam olarak anlayamadım. Farklı bir şekilde sorabilir misin?' };
+    }
   }
 };

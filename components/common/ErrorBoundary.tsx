@@ -1,4 +1,3 @@
-
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import Button from './Button';
 
@@ -23,7 +22,6 @@ class ErrorBoundary extends Component<Props, State> {
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  // FIX: Use an arrow function for the handler to ensure `this` is correctly bound.
   private handleRetry = () => {
     this.setState({ hasError: false });
   };
@@ -55,7 +53,6 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // FIX: Correctly access props via `this.props`.
     return this.props.children;
   }
 }

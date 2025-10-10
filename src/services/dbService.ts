@@ -1,5 +1,7 @@
 
 
+
+
 import Dexie, { type Table } from 'dexie';
 import { 
     User, Customer, Appointment, Interview, Offer, SyncQueueItem, 
@@ -76,9 +78,9 @@ export class AppDatabase extends Dexie {
 
 export const db = new AppDatabase();
 
+// Fix: The 'transaction' method is available on the `db` instance of the Dexie class. This error was likely a side-effect of the incorrect schema definition.
 export const seedInitialData = async () => {
     try {
-        // Fix: The 'transaction' method is available on the `db` instance of the Dexie class. This error was likely a side-effect of the incorrect schema definition.
         await db.transaction('rw', db.incomingInvoices, db.outgoingInvoices, async () => {
             if (await db.incomingInvoices.count() === 0) {
                 await db.incomingInvoices.bulkAdd(MOCK_INCOMING_INVOICES);

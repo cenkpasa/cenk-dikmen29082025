@@ -1,74 +1,47 @@
-
-
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '@/App';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { DataProvider } from '@/contexts/DataContext';
 import { ErpProvider } from '@/contexts/ErpContext';
 import { PersonnelProvider } from '@/contexts/PersonnelContext';
-import { NotificationCenterProvider } from '@/contexts/NotificationCenterContext';
 import { SettingsProvider } from '@/contexts/SettingsContext';
 import { ReconciliationProvider } from '@/contexts/ReconciliationContext';
-import { ThemeProvider } from '@/contexts/ThemeContext';
-import { seedDatabase } from '@/services/dbService';
-import Loader from '@/components/common/Loader';
+import { NotificationCenterProvider } from '@/contexts/NotificationCenterContext';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
+import { syncService } from '@/services/syncService';
 
-const AppProviders = () => (
-    <ThemeProvider>
-      <LanguageProvider>
-        <NotificationProvider>
-          <AuthProvider>
-            <SettingsProvider>
-              <NotificationCenterProvider>
-                <DataProvider>
-                    <ErpProvider>
-                      <PersonnelProvider>
-                        <ReconciliationProvider>
-                          <App />
-                        </ReconciliationProvider>
-                      </PersonnelProvider>
-                    </ErpProvider>
-                </DataProvider>
-              </NotificationCenterProvider>
-            </SettingsProvider>
-          </AuthProvider>
-        </NotificationProvider>
-      </LanguageProvider>
-    </ThemeProvider>
+// Çevrimdışı çalışırken yapılan değişiklikleri senkronize etmek için periyodik kontrolleri başlat.
+window.addEventListener('online', () => syncService.processSyncQueue());
+setInterval(() => syncService.processSyncQueue(), 5 * 60 * 1000); // Her 5 dakikada bir
+syncService.processSyncQueue();
+
+const AppProviders = ({ children }: { children: React.ReactNode }) => (
+  <ThemeProvider>
+    <LanguageProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <DataProvider>
+            <ErpProvider>
+              <PersonnelProvider>
+                <SettingsProvider>
+                  <ReconciliationProvider>
+                    <NotificationCenterProvider>
+                      {children}
+                    </NotificationCenterProvider>
+                  </ReconciliationProvider>
+                </SettingsProvider>
+              </PersonnelProvider>
+            </ErpProvider>
+          </DataProvider>
+        </AuthProvider>
+      </NotificationProvider>
+    </LanguageProvider>
+  </ThemeProvider>
 );
-
-
-const AppInitializer = () => {
-    const [isInitialized, setIsInitialized] = useState(false);
-    const initialized = useRef(false);
-
-    useEffect(() => {
-        if (initialized.current) return;
-        initialized.current = true;
-
-        const initialize = async () => {
-            try {
-                await seedDatabase();
-            } catch (error) {
-                console.error("Database seeding failed:", error);
-            } finally {
-                setIsInitialized(true);
-            }
-        };
-        initialize();
-    }, []);
-
-    if (!isInitialized) {
-        return <Loader fullScreen={true} />;
-    }
-
-    return <AppProviders />;
-};
-
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -79,7 +52,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <AppInitializer />
+      <AppProviders>
+        <App />
+      </AppProviders>
     </ErrorBoundary>
   </React.StrictMode>
 );

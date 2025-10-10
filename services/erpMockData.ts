@@ -4,12 +4,12 @@ import { Offer, IncomingInvoice, OutgoingInvoice, StockItem, Warehouse, StockLev
 import { v4 as uuidv4 } from 'uuid';
 
 export const MOCK_ERP_CUSTOMERS: Omit<Customer, 'id' | 'createdAt'>[] = [
-    { currentCode: 'CR010518', commercialTitle: "PROTİCO PROTEZ ORTEZ", name: "PROTİCO PROTEZ ORTEZ", city: "YENİMAHALLE", country: "TÜRKİYE", group:"MÜŞTERİ" },
-    { currentCode: 'CR010536', commercialTitle: "BY TECH MAKİNA SAN.", name: "BY TECH MAKİNA SAN.", city: "YENİMAHALLE", country: "TÜRKİYE", group:"MÜŞTERİ" },
-    { currentCode: 'CR010517', commercialTitle: "ATAK KESİCİ TAKIMLAR FATİH AKINSU", name: "ATAK KESİCİ TAKIMLAR", city: "Toprakkale", country: "TÜRKİYE", group:"MÜŞTERİ" },
-    { currentCode: 'CNKCK-10308', commercialTitle: "VERMA MAKİNA TORKU HAYRETTİN ÇEPLİ", name: "VERMA MAKİNA TORKU", city: "YENİMAHALLE", country: "TÜRKİYE", group:"MÜŞTERİ" },
-    { currentCode: 'CR012340', commercialTitle: "ÖZAVMİN SANAYİ LİMİTED AHMET BEY", name: "ÖZAVMİN SANAYİ", city: "Sincan", country: "TÜRKİYE", group:"MÜŞTERİ" },
-    { currentCode: 'CNKCK-0141', commercialTitle: "ÖZOKLAR METAL SAN. ZAHİT ÖZCAN", name: "ÖZOKLAR METAL", city: "YENİMAHALLE", country: "TÜRKİYE", group:"MÜŞTERİ" },
+    { currentCode: 'CR010518', commercialTitle: "PROTİCO PROTEZ ORTEZ", name: "PROTİCO PROTEZ ORTEZ", city: "YENİMAHALLE", country: "TÜRKİYE", group:"MÜŞTERİ", status: 'active' },
+    { currentCode: 'CR010536', commercialTitle: "BY TECH MAKİNA SAN.", name: "BY TECH MAKİNA SAN.", city: "YENİMAHALLE", country: "TÜRKİYE", group:"MÜŞTERİ", status: 'active' },
+    { currentCode: 'CR010517', commercialTitle: "ATAK KESİCİ TAKIMLAR FATİH AKINSU", name: "ATAK KESİCİ TAKIMLAR", city: "Toprakkale", country: "TÜRKİYE", group:"MÜŞTERİ", status: 'active' },
+    { currentCode: 'CNKCK-10308', commercialTitle: "VERMA MAKİNA TORKU HAYRETTİN ÇEPLİ", name: "VERMA MAKİNA TORKU", city: "YENİMAHALLE", country: "TÜRKİYE", group:"MÜŞTERİ", status: 'active' },
+    { currentCode: 'CR012340', commercialTitle: "ÖZAVMİN SANAYİ LİMİTED AHMET BEY", name: "ÖZAVMİN SANAYİ", city: "Sincan", country: "TÜRKİYE", group:"MÜŞTERİ", status: 'active' },
+    { currentCode: 'CNKCK-0141', commercialTitle: "ÖZOKLAR METAL SAN. ZAHİT ÖZCAN", name: "ÖZOKLAR METAL", city: "YENİMAHALLE", country: "TÜRKİYE", group:"MÜŞTERİ", status: 'active' },
 ];
 
 export const MOCK_ERP_STOCK_ITEMS: Omit<StockItem, 'id' | 'lastSync'>[] = [

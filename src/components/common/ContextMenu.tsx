@@ -2,6 +2,7 @@
 
 
 
+
 import React, { useEffect, useRef } from 'react';
 
 // A discriminated union for menu items.

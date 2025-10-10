@@ -147,15 +147,39 @@ const ReconciliationPage = () => {
 
     const autoMatchedPairs = useMemo(() => {
         const pairs: MatchedPair[] = [];
-        const unmatchedOutgoingCopy = [...unmatchedInvoices.outgoing];
+        if (unmatchedInvoices.outgoing.length === 0 || unmatchedInvoices.incoming.length === 0) {
+            return pairs;
+        }
 
+        // Create a map of outgoing invoices for quick lookup. 
+        // The value is an array to handle multiple identical invoices.
+        const outgoingMap = new Map<string, OutgoingInvoice[]>();
+        unmatchedInvoices.outgoing.forEach(out => {
+            const key = `${out.vergiNo}_${out.tutar}`;
+            if (!outgoingMap.has(key)) {
+                outgoingMap.set(key, []);
+            }
+            outgoingMap.get(key)!.push(out);
+        });
+
+        // Iterate through incoming invoices and find a match from the map.
         unmatchedInvoices.incoming.forEach(inc => {
-            const perfectMatch = unmatchedOutgoingCopy.find(out => out.vergiNo === inc.vergiNo && out.tutar === inc.tutar);
-            if (perfectMatch) {
-                pairs.push({ incoming: inc, outgoing: perfectMatch, matchType: 'perfect' });
-                unmatchedOutgoingCopy.splice(unmatchedOutgoingCopy.indexOf(perfectMatch), 1);
+            const key = `${inc.vergiNo}_${inc.tutar}`;
+            const potentialMatches = outgoingMap.get(key);
+
+            // If a match is found, take the first one and remove it from the pool.
+            if (potentialMatches && potentialMatches.length > 0) {
+                const match = potentialMatches.shift(); // "Consume" the invoice
+                if (match) {
+                    pairs.push({
+                        incoming: inc,
+                        outgoing: match,
+                        matchType: 'perfect'
+                    });
+                }
             }
         });
+
         return pairs;
     }, [unmatchedInvoices]);
 

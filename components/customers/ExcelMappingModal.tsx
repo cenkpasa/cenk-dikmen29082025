@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNotification } from '@/contexts/NotificationContext';
@@ -15,7 +13,6 @@ interface ExcelMappingModalProps {
     onConfirm: (mappedData: Omit<Customer, 'id' | 'createdAt'>[]) => void;
 }
 
-// FIX: Export the component to make it available for import.
 export const ExcelMappingModal = ({ isOpen, onClose, jsonData, headers, onConfirm }: ExcelMappingModalProps) => {
     const { t } = useLanguage();
     const { showNotification } = useNotification();

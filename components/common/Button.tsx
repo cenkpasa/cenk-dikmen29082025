@@ -1,13 +1,16 @@
 import React, { ButtonHTMLAttributes, ReactNode } from 'react';
 import Loader from '@/components/common/Loader';
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+// FIX: Changed from interface to type and used an intersection with ButtonHTMLAttributes.
+// This is a more robust way to merge custom props with all standard HTML button attributes,
+// resolving errors where props like `type`, `onClick`, and `className` were not recognized.
+export type ButtonProps = {
     variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'info' | 'login';
     size?: 'sm' | 'md' | 'lg';
     icon?: string;
     isLoading?: boolean;
     children?: ReactNode;
-}
+} & ButtonHTMLAttributes<HTMLButtonElement>;
 
 const Button = ({ 
     children, 

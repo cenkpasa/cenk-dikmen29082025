@@ -1,3 +1,4 @@
+
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import Button from './Button';
 
@@ -22,7 +23,12 @@ class ErrorBoundary extends Component<Props, State> {
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  render() {
+  // FIX: Use an arrow function for the handler to ensure `this` is correctly bound.
+  private handleRetry = () => {
+    this.setState({ hasError: false });
+  };
+
+  public render() {
     if (this.state.hasError) {
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-cnk-bg-light text-cnk-txt-secondary-light p-4">
@@ -33,7 +39,7 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="flex items-center justify-center gap-4">
                 <Button
                   variant="primary"
-                  onClick={() => this.setState({ hasError: false })}
+                  onClick={this.handleRetry}
                 >
                   Tekrar Dene
                 </Button>
@@ -49,6 +55,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
+    // FIX: Correctly access props via `this.props`.
     return this.props.children;
   }
 }

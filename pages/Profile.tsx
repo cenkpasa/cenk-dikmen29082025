@@ -4,9 +4,10 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useNotification } from '../contexts/NotificationContext';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
+import ProfilePictureEditor from '../components/common/ProfilePictureEditor';
 
 const Profile = () => {
-    const { currentUser, changePassword, logout } = useAuth();
+    const { currentUser, changePassword, logout, updateUser } = useAuth();
     const { t } = useLanguage();
     const { showNotification } = useNotification();
     const [oldPassword, setOldPassword] = useState('');
@@ -14,6 +15,7 @@ const Profile = () => {
     const [confirmNewPassword, setConfirmNewPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
 
     const handlePasswordChange = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -43,6 +45,17 @@ const Profile = () => {
         setIsLoading(false);
     };
 
+    const handleAvatarSave = async (base64Image: string) => {
+        if (currentUser) {
+            const result = await updateUser({ ...currentUser, avatar: base64Image });
+            if (result.success) {
+                showNotification(result.messageKey, 'success');
+            } else {
+                showNotification(result.messageKey, 'error');
+            }
+        }
+    };
+
     if (!currentUser) {
         return <p>{t('noUserLoggedIn')}</p>;
     }
@@ -50,6 +63,20 @@ const Profile = () => {
     return (
         <div>
             <div className="max-w-2xl rounded-cnk-card border border-cnk-border-light bg-cnk-panel-light p-6 shadow-md">
+                <div className="flex items-center justify-center mb-6">
+                    <div className="relative group w-24 h-24">
+                        <img src={currentUser.avatar || `https://ui-avatars.com/api/?name=${currentUser.name}&background=random`} alt="Avatar" className="w-24 h-24 rounded-full object-cover shadow-md" />
+                         <button
+                            type="button"
+                            onClick={() => setIsAvatarEditorOpen(true)}
+                            className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            aria-label={t('editPhoto')}
+                        >
+                            <i className="fas fa-camera text-2xl"></i>
+                        </button>
+                    </div>
+                </div>
+
                 <h3 className="mb-4 text-xl font-semibold text-cnk-accent-primary">{t('userInfo')}</h3>
                 <div className="space-y-4">
                      <Input label={t('username')} id="prof_username" value={currentUser.username} readOnly />
@@ -71,6 +98,13 @@ const Profile = () => {
                      </form>
                 </div>
             </div>
+            {isAvatarEditorOpen && (
+                <ProfilePictureEditor
+                    isOpen={isAvatarEditorOpen}
+                    onClose={() => setIsAvatarEditorOpen(false)}
+                    onSave={handleAvatarSave}
+                />
+            )}
         </div>
     );
 };

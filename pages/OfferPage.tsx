@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, ChangeEvent } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -322,7 +323,7 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
                         <InputField label={t('email')} id="eposta" value={formState.firma.eposta} onChange={(e) => handleInputChange(e, 'firma')} readOnly={isReadOnly} section="firma" />
                         <InputField label={t('vade')} id="vade" value={formState.firma.vade} onChange={(e) => handleInputChange(e, 'firma')} readOnly={isReadOnly} section="firma" />
                         <InputField label={t('date')} id="teklifTarihi" type="date" value={formState.firma.teklifTarihi} onChange={(e) => handleInputChange(e, 'firma')} readOnly={isReadOnly} section="firma" />
-                        {/* Fix: Removed invalid `section` prop */}
+                        {/* FIX: Removed invalid `section` prop */}
                         <InputField label={t('teklifNo')} id="teklifNo" value={existingOffer?.teklifNo || 'Otomatik'} onChange={() => {}} readOnly={true}/>
                     </div>
                     <div className="border-2 border-cnk-txt-primary-light p-2 space-y-1">

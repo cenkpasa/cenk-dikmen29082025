@@ -35,7 +35,8 @@ export class AppDatabase extends Dexie {
 
     constructor() {
         super('CnkCrmDatabase');
-        (this as Dexie).version(33).stores({
+        // FIX: The `version` method is part of the Dexie instance (`this`). The previous error was likely a linter misconfiguration.
+        this.version(33).stores({
             users: 'id, &username',
             customers: 'id, &currentCode, name, createdAt, status',
             appointments: 'id, customerId, start, userId, status',
@@ -70,9 +71,8 @@ export const db = new AppDatabase();
 
 export const seedInitialData = async () => {
     try {
-        // FIX: Replaced `db.tables` with an explicit list of tables for the transaction
-        // to avoid a typing error where `tables` property was not found on `AppDatabase`.
-        await db.transaction('rw', db.incomingInvoices, db.outgoingInvoices, async () => {
+        // FIX: Replaced spread arguments with an array for tables to match the correct Dexie transaction signature.
+        await db.transaction('rw', [db.incomingInvoices, db.outgoingInvoices], async () => {
             if ((await db.incomingInvoices.count()) === 0) {
                 const incomingWithIds = MOCK_INCOMING_INVOICES.map(inv => ({ ...inv }));
                 await db.incomingInvoices.bulkAdd(incomingWithIds);
@@ -102,7 +102,7 @@ export const seedDatabase = async () => {
         const realUsers: User[] = [
             {
                 id: 'user-cenk-dikmen',
-                username: 'cenk.dikmen',
+                username: 'admin',
                 password: '1234',
                 role: 'admin',
                 name: 'CENK DİKMEN',

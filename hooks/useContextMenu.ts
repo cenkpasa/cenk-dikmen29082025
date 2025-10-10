@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+
+import { useState, useCallback, MouseEvent } from 'react';
 
 interface ContextMenuState {
   isOpen: boolean;
@@ -11,7 +12,8 @@ export const useContextMenu = () => {
     position: { x: 0, y: 0 },
   });
 
-  const handleContextMenu = useCallback((event: React.MouseEvent) => {
+  // FIX: Use `MouseEvent` imported from `react` instead of the global `MouseEvent`.
+  const handleContextMenu = useCallback((event: MouseEvent) => {
     event.preventDefault();
     setMenuState({
       isOpen: true,

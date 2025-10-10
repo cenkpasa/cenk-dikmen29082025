@@ -1,4 +1,5 @@
 
+
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -87,6 +88,9 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
     const NotificationContainer = () => (
         <div id="notification-container" className="fixed top-5 right-5 z-[10001] flex flex-col gap-3">
             {notifications.map(n => (
+// FIX: The `key` prop is for React's reconciliation and is not passed to the component.
+// The component was incorrectly being assigned a type that included `key`.
+// By passing props individually, we avoid this issue.
                 <NotificationComponent key={n.id} notification={n} onDismiss={dismissNotification} />
             ))}
         </div>

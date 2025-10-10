@@ -258,6 +258,11 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'userUpdatedSuccess': 'Kullanıcı başarıyla güncellendi.',
         'userAddedSuccess': 'Kullanıcı başarıyla eklendi.',
         'invalidTCKN': 'Geçersiz T.C. Kimlik Numarası.',
+        'editPhoto': 'Fotoğrafı Düzenle',
+        'uploadFromFile': 'Dosyadan Yükle',
+        'editProfilePicture': 'Profil Fotoğrafını Düzenle',
+        'back': 'Geri',
+        'capture': 'Çek',
         
         // --- Personnel Management (Users page) ---
         'personnelInfo': 'Personel Bilgileri',
@@ -296,7 +301,6 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'leaveBlankToKeep': '(Değiştirmek istemiyorsanız boş bırakın)',
         'required': '(Gerekli)',
         'usernameInUse': 'Bu kullanıcı adı zaten kullanılıyor.',
-        'editPhoto': 'Fotoğrafı Düzenle',
         'selectPhoto': 'Bir fotoğraf seçin veya sürükleyin.',
         'fullName': 'Ad Soyad',
         'department': 'Departman',

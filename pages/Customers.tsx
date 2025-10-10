@@ -142,7 +142,7 @@ const Customers = ({ setView, view }: { setView: (view: ViewState) => void; view
         handleContextMenu(event);
     };
 
-    // FIX: The array items now correctly match the narrowed MenuItem types.
+    // FIX: The array items now correctly match the narrowed MenuItem types by using 'as const' for the separator.
     const contextMenuItems = contextMenuCustomer ? [
         { label: t('view'), icon: 'fa-eye', action: () => handleView(contextMenuCustomer) },
         { label: t('edit'), icon: 'fa-edit', action: () => handleEdit(contextMenuCustomer), disabled: !canEdit },

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ErpSettings, StockItem, Invoice, Customer, Offer, IncomingInvoice, OutgoingInvoice, StockLevel, Warehouse } from '../types';
@@ -59,6 +60,7 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
             const existing = existingCustomerMap.get(erpCust.currentCode!);
             if (existing) {
                 updatedCount++;
+                // FIX: Ensured spread syntax is used on an object type by guarding `existing`.
                 return { ...existing, ...erpCust, synced: true };
             } else {
                 addedCount++;
@@ -94,9 +96,11 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
         let updatedCount = 0;
 
         const itemsToUpsert: StockItem[] = fetchedItems.map(item => {
-            if (existingItemsMap.has(item.sku)) {
+            const existingItem = existingItemsMap.get(item.sku);
+            if (existingItem) {
                 updatedCount++;
-                return { ...existingItemsMap.get(item.sku)!, ...item, lastSync: newSyncTimestamp };
+                // FIX: Ensured spread syntax is used on an object type by guarding `existingItem`.
+                return { ...existingItem, ...item, lastSync: newSyncTimestamp };
             } else {
                 addedCount++;
                 return { ...item, id: item.sku, lastSync: newSyncTimestamp };
@@ -124,9 +128,11 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
         let updatedCount = 0;
 
         const invoicesToUpsert = fetchedInvoices.map(inv => {
-            if(existingInvoiceMap.has(inv.faturaNo)) {
+            const existingInv = existingInvoiceMap.get(inv.faturaNo);
+            if(existingInv) {
                 updatedCount++;
-                return { ...existingInvoiceMap.get(inv.faturaNo)!, ...inv };
+                // FIX: Ensured spread syntax is used on an object type by guarding `existingInv`.
+                return { ...existingInv, ...inv };
             } else {
                 addedCount++;
                 return inv;
@@ -154,9 +160,11 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
         let updatedCount = 0;
 
         const invoicesToUpsert = fetchedInvoices.map(inv => {
-            if(existingInvoiceMap.has(inv.faturaNo)) {
+            const existingInv = existingInvoiceMap.get(inv.faturaNo);
+            if(existingInv) {
                 updatedCount++;
-                return { ...existingInvoiceMap.get(inv.faturaNo)!, ...inv };
+                // FIX: Ensured spread syntax is used on an object type by guarding `existingInv`.
+                return { ...existingInv, ...inv };
             } else {
                 addedCount++;
                 return inv;
@@ -202,7 +210,7 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
         const existingOfferMap = new Map(existingOffers.map(o => [o.teklifNo, o]));
 
         const allCustomers = await db.customers.toArray();
-        const customerCodeToIdMap = new Map(allCustomers.map(c => [c.currentCode, c.id]));
+        const customerCodeToIdMap = new Map(allCustomers.filter(c => c.currentCode).map(c => [c.currentCode!, c.id]));
 
         let addedCount = 0;
         let updatedCount = 0;
@@ -214,10 +222,13 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
             if (!customerId) continue; // Skip if customer doesn't exist in CRM
 
             const existing = existingOfferMap.get(erpOffer.teklifNo);
-            const fullOfferData = { ...erpOffer, customerId };
+            // FIX: Remove customerCurrentCode before spreading to match the Offer type.
+            const { customerCurrentCode, ...restOfErpOffer } = erpOffer;
+            const fullOfferData = { ...restOfErpOffer, customerId };
 
             if (existing) {
                 updatedCount++;
+                // FIX: Ensured spread syntax is used on an object type by guarding `existing`.
                 offersToUpsert.push({ ...existing, ...fullOfferData });
             } else {
                 addedCount++;
@@ -225,7 +236,7 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
                     ...fullOfferData,
                     id: uuidv4(),
                     createdAt: new Date().toISOString(),
-                });
+                } as Offer);
             }
         }
         

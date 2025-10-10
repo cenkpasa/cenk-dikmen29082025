@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePersonnel } from '@/contexts/PersonnelContext';
@@ -147,36 +148,4 @@ const ExpenseReportPage = () => {
                                 const reimbursement = distance * ratePerKm;
                                 return (
                                 <tr key={trip.id}>
-                                    <td className="border border-cnk-border-light"><input type="date" value={trip.date || ''} onChange={e => handleTripChange(index, 'date', e.target.value)} className="w-full p-1"/></td>
-                                    <td className="border border-cnk-border-light"><input type="text" value={trip.startLocation || ''} onChange={e => handleTripChange(index, 'startLocation', e.target.value)} className="w-full p-1"/></td>
-                                    <td className="border border-cnk-border-light"><input type="text" value={trip.endLocation || ''} onChange={e => handleTripChange(index, 'endLocation', e.target.value)} className="w-full p-1"/></td>
-                                    <td className="border border-cnk-border-light"><input type="text" value={trip.notes || ''} onChange={e => handleTripChange(index, 'notes', e.target.value)} className="w-full p-1"/></td>
-                                    <td className="border border-cnk-border-light"><input type="number" value={trip.odometerStart || ''} onChange={e => handleTripChange(index, 'odometerStart', parseFloat(e.target.value))} className="w-full p-1"/></td>
-                                    <td className="border border-cnk-border-light"><input type="number" value={trip.odometerEnd || ''} onChange={e => handleTripChange(index, 'odometerEnd', parseFloat(e.target.value))} className="w-full p-1"/></td>
-                                    <td className="border border-cnk-border-light p-1 text-right">{distance.toFixed(0)}</td>
-                                    <td className="border border-cnk-border-light p-1 text-right">{reimbursement.toFixed(2)}</td>
-                                    <td className="border border-cnk-border-light text-center no-print">
-                                        <button onClick={() => setTrips(trips.filter(t => t.id !== trip.id))} className="text-red-500 hover:text-red-700">
-                                            <i className="fas fa-trash-alt"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            )})}
-                        </tbody>
-                        <tfoot>
-                            <tr className="font-bold bg-cnk-bg-light">
-                                <td colSpan={6} className="p-2 border border-cnk-border-light text-right">{t('totals')}</td>
-                                <td className="p-2 border border-cnk-border-light text-right">{calculations.totalDistance.toFixed(0)}</td>
-                                <td className="p-2 border border-cnk-border-light text-right">{calculations.totalReimbursement.toFixed(2)}</td>
-                                <td className="p-2 border border-cnk-border-light no-print"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-                 <Button onClick={addRow} icon="fas fa-plus" size="sm" className="mt-2 no-print">{t('addRow')}</Button>
-            </div>
-        </div>
-    );
-};
-
-export default ExpenseReportPage;
+                                    <td className="border border-cnk-border

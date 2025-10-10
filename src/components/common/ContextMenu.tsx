@@ -1,11 +1,5 @@
-
-
-
-
-
 import React, { useEffect, useRef } from 'react';
 
-// A discriminated union for menu items.
 export type MenuItem =
   | {
       isSeparator: true;
@@ -46,17 +40,13 @@ const ContextMenu = ({ isOpen, position, onClose, items }: ContextMenuProps) => 
         <ul
             ref={menuRef}
             style={{ top: position.y, left: position.x }}
-            onClick={(e) => e.stopPropagation()} // Prevent click from bubbling up to the document listener
+            onClick={(e) => e.stopPropagation()}
             className="fixed z-[10001] bg-cnk-panel-light border border-cnk-border-light rounded-md shadow-lg py-1 min-w-[180px] animate-fadeIn"
         >
             {items.map((item, index) => {
-                // FIX: Use the 'in' operator as a type guard. This is a robust way to
-                // help TypeScript narrow the union type correctly.
                 if ('isSeparator' in item && item.isSeparator) {
-                    // This is a separator.
                     return <li key={`sep-${index}`} className="h-px bg-cnk-border-light my-1"></li>;
                 } else if ('label' in item) {
-                    // This is an actionable menu item.
                     return (
                         <li
                             key={item.label + index}

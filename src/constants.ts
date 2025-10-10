@@ -1,9 +1,8 @@
 import { Project, Technology } from '@/types';
 
 // ASSETS
-// FIX: Added placeholder base64 strings for logos
-const PLH_B64_CNK = 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTMwIDM1IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMzAiIGhlaWdodD0iMzUiIHJ4PSI1IiBmaWxsPSIjMWUyOTNiIi8+PHBhdGggZD0iTTggNCBIIDI4IFYgMzEgSCA4IFYgMjYgTCAxOCAyMSBMIDggMTYgViAxMSBMIDE4IDE2IEwgOCAyMSBWIDQiIHN0cm9rZT0iI2MwMDAwMCIgc3Ryb2tlV2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48dGV4dCB4PSIzNSIgeT0iMjUiIGZvbnRGYW-pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250U2l6ZT0iMjAiIGZvbnRXZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIj5DTks8L3RleHQ+PHRleHQgeD0iODAiIHk9IjI1IiBmb250RmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udFNpemU9IjIwIiBmb250V2VpZ2h0PSJib2xkIiBmaWxsPSIjZjFmNWY5IiBvcGFjaXR5PSIwLjgiPlBybzwvdGV4dD48L3N2Zz4=';
-const PLH_B64_BWORKS = 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTUwIDQwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0IHg9IjUiIHk9IjMwIiBmb250RmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udFNpemU9IjMwIiBmb250V2VpZ2h0PSJib2xkIiBmaWxsPSIjMzM0MTU1Ij5CV29ya3M8L3RleHQ+PC9zdmc+';
+const PLH_B64_CNK = 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTMwIDM1IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMzAiIGhlaWdodD0iMzUiIHJ4PSI1IiBmaWxsPSIjMWUyOTNiIi8+PHBhdGggZD0iTTggNCBIIDI4IFYgMzEgSCA4IFYgMjYgTCAxOCAyMSBMIDggMTYgViAxMSBMIDE4IDE2IEwgOCAyMSBWIDQiIHN0cm9rZT0iI2MwMDAwMCIgc3Ryb2tlV2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48dGV4dCB4PSIzNSIgeT0iMjUiIGZvbnRGYW-pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250U2l6ZT0iMjAiIGZvbnRXZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIj5DTks8L3RleHQ+PHRleHQgeD0iODAiIHk9IjI1IiBmb250RmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udFNpemU9IjIwIiBmb250V2VpZGh0PSJib2xkIiBmaWxsPSIjZjFmNWY5IiBvcGFjaXR5PSIwLjgiPlBybzwvdGV4dD48L3N2Zz4=';
+const PLH_B64_BWORKS = 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTUwIDQwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0IHg9IjUiIHk9IjMwIiBmb250RmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udFNpemU9IjMwIiBmb250V2VpZh0PSJib2xkIiBmaWxsPSIjMzM0MTU1Ij5CV29ya3M8L3RleHQ+PC9zdmc+';
 
 export const ASSETS = {
     LOGIN_BG_CNK_OFFICE: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2832&auto=format&fit=crop',
@@ -29,7 +28,7 @@ export const PASSWORD_MIN_LENGTH = 4;
 // GEOLOCATION & SHIFTS
 export const WORKPLACE_COORDS = { latitude: 39.983334, longitude: 32.766666 }; // Ostim, Ankara
 export const WORKPLACE_RADIUS_KM = 1; // 1km radius to be considered "at work"
-export const WORK_HOURS = {
+export const WORK_HOURS: Record<number, { start: string; end: string; lunch: number } | null> = {
     1: { start: '08:30', end: '18:00', lunch: 1 }, // Monday
     2: { start: '08:30', end: '18:00', lunch: 1 }, // Tuesday
     3: { start: '08:30', end: '18:00', lunch: 1 }, // Wednesday
@@ -163,6 +162,8 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'noMatchesFound': 'Otomatik eşleştirme için uygun fatura bulunamadı.',
         'reconciliationPdfDownloaded': 'Mutabakat PDF olarak indirildi.',
         'emailClientOpened': 'E-posta göndermek için e-posta istemciniz açılıyor...',
+        'profilePicturePreview': 'Profil fotoğrafı önizlemesi',
+        'capturedBusinessCard': 'Yakalanan kartvizit görüntüsü',
 
         // --- AI Robot Widget ---
         'ai_assistant': 'Yapay Zeka Asistan',
@@ -176,9 +177,12 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'projects': 'Projelerim',
         'tech_stack': 'Teknolojiler',
         'contact': 'İletişim',
+    },
+    en: {
+        // English translations would go here
     }
 };
 
-// MOCK DATA - Kept for portfolio components that might still be in the codebase
+// MOCK DATA
 export const MOCK_PROJECTS: Project[] = [];
 export const TECH_STACK: Technology[] = [];

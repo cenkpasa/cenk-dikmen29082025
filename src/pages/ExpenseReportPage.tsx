@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePersonnel } from '@/contexts/PersonnelContext';
@@ -24,8 +21,6 @@ const ExpenseReportPage = () => {
     useEffect(() => {
         if (selectedUserId) {
             const userTrips = getTripRecordsForUser(selectedUserId);
-            // Show at least 10 rows, filled with existing data or empty
-            // FIX: Explicitly type `displayTrips` as `Partial<TripRecord>[]` to allow pushing partial objects for new empty rows.
             const displayTrips: Partial<TripRecord>[] = [...userTrips];
             while (displayTrips.length < 10) {
                 displayTrips.push({ id: uuidv4(), userId: selectedUserId });
@@ -104,7 +99,6 @@ const ExpenseReportPage = () => {
             <div ref={reportRef} className="print-area border border-cnk-border-light p-4 bg-white">
                 <h2 className="text-xl font-bold text-center mb-4">{t('expenseReport')}</h2>
                 
-                {/* Header */}
                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                     <div className="space-y-1">
                         <div className="grid grid-cols-[200px_1fr]">
@@ -133,7 +127,6 @@ const ExpenseReportPage = () => {
                     </div>
                 </div>
 
-                {/* Table */}
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs border-collapse">
                         <thead className="bg-cnk-bg-light">

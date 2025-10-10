@@ -1,7 +1,3 @@
-
-
-
-
 import Dexie, { type Table } from 'dexie';
 import { 
     User, Customer, Appointment, Interview, Offer, SyncQueueItem, 
@@ -43,8 +39,7 @@ export class AppDatabase extends Dexie {
     auditLogs!: Table<AuditLog, number>;
 
     constructor() {
-        super('CnkPortfolioDatabase');
-        // Fix: Dexie requires the database schema (version and stores) to be defined within the constructor. This ensures the database is initialized correctly.
+        super('CnkCrmDatabase');
         this.version(3).stores({
             users: 'id, &username',
             customers: 'id, &currentCode, name, email, taxNumber',
@@ -78,7 +73,6 @@ export class AppDatabase extends Dexie {
 
 export const db = new AppDatabase();
 
-// Fix: The 'transaction' method is available on the `db` instance of the Dexie class. This error was likely a side-effect of the incorrect schema definition.
 export const seedInitialData = async () => {
     try {
         await db.transaction('rw', db.incomingInvoices, db.outgoingInvoices, async () => {

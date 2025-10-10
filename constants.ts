@@ -163,6 +163,8 @@ export const MESSAGES: Record<string, Record<string, string>> = {
         'noMatchesFound': 'Otomatik eşleştirme için uygun fatura bulunamadı.',
         'reconciliationPdfDownloaded': 'Mutabakat PDF olarak indirildi.',
         'emailClientOpened': 'E-posta göndermek için e-posta istemciniz açılıyor...',
+        'profilePicturePreview': 'Profil fotoğrafı önizlemesi',
+        'capturedBusinessCard': 'Yakalanan kartvizit görüntüsü',
 
         // --- AI Robot Widget ---
         'ai_assistant': 'Yapay Zeka Asistan',

@@ -1,0 +1,1 @@
+full contents of src/components/ai/VoiceNoteModal.tsx

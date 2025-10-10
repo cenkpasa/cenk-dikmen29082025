@@ -1,7 +1,3 @@
-
-
-
-
 import { useState, useCallback, MouseEvent } from 'react';
 
 interface ContextMenuState {
@@ -15,7 +11,6 @@ export const useContextMenu = () => {
     position: { x: 0, y: 0 },
   });
 
-  // FIX: Use `MouseEvent` imported from `react` instead of the global `MouseEvent`.
   const handleContextMenu = useCallback((event: MouseEvent) => {
     event.preventDefault();
     setMenuState({

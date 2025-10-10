@@ -8,7 +8,6 @@ export interface User {
     name:string;
     jobTitle?:string;
     avatar?:string;
-    // FIX: Added missing personnel fields to the User type
     tcNo?: string;
     phone?: string;
     startDate?: string;
@@ -50,8 +49,6 @@ export interface ChatMessage {
   sender: 'user' | 'ai';
   text: string;
 }
-
-// FIX: Added all missing type definitions for the application
 
 export type OfferStatus = 'draft' | 'sent' | 'negotiation' | 'won' | 'lost';
 

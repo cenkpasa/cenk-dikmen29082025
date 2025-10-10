@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Modal from './Modal';
 import Button from './Button';
@@ -99,7 +98,7 @@ const ProfilePictureEditor = ({ isOpen, onClose, onSave }: ProfilePictureEditorP
         if (image) {
             return (
                 <div className="text-center">
-                    <img src={image} alt="Preview" className="max-w-full max-h-80 mx-auto rounded-lg mb-4" />
+                    <img src={image} alt={t('profilePicturePreview')} className="max-w-full max-h-80 mx-auto rounded-lg mb-4" />
                     <div className="flex justify-center gap-4">
                         <Button variant="secondary" onClick={handleRetry}>{t('retakePhoto')}</Button>
                         <Button variant="primary" onClick={handleSaveImage}>{t('save')}</Button>

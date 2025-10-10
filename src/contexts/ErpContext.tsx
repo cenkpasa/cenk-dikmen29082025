@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ErpSettings, StockItem, Invoice, Customer, Offer, IncomingInvoice, OutgoingInvoice, StockLevel, Warehouse } from '../types';
@@ -65,7 +59,6 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
             const existing = existingCustomerMap.get(erpCust.currentCode!);
             if (existing) {
                 updatedCount++;
-                // Fix: Added a non-null assertion `!` because TypeScript was not narrowing the type of 'existing' inside the 'if' block. This assures the compiler that 'existing' is an object, resolving the spread operator error.
                 return { ...existing!, ...erpCust, synced: true };
             } else {
                 addedCount++;
@@ -104,7 +97,6 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
             const existingItem = existingItemsMap.get(item.sku);
             if (existingItem) {
                 updatedCount++;
-                // Fix: Added a non-null assertion `!` because TypeScript was not narrowing the type of 'existingItem' inside the 'if' block. This assures the compiler that 'existingItem' is an object, resolving the spread operator error.
                 return { ...existingItem!, ...item, lastSync: newSyncTimestamp };
             } else {
                 addedCount++;
@@ -136,7 +128,6 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
             const existingInv = existingInvoiceMap.get(inv.faturaNo);
             if(existingInv) {
                 updatedCount++;
-                // Fix: Added a non-null assertion `!` because TypeScript was not narrowing the type of 'existingInv' inside the 'if' block. This assures the compiler that 'existingInv' is an object, resolving the spread operator error.
                 return { ...existingInv!, ...inv };
             } else {
                 addedCount++;
@@ -168,7 +159,6 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
             const existingInv = existingInvoiceMap.get(inv.faturaNo);
             if(existingInv) {
                 updatedCount++;
-                // Fix: Added a non-null assertion `!` because TypeScript was not narrowing the type of 'existingInv' inside the 'if' block. This assures the compiler that 'existingInv' is an object, resolving the spread operator error.
                 return { ...existingInv!, ...inv };
             } else {
                 addedCount++;
@@ -202,7 +192,6 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
     };
 
     const syncInvoices = async (): Promise<SyncResult> => {
-        // This is a placeholder for the general invoice sync, which might be different from incoming/outgoing.
         return { type: 'Fatura', fetched: 0, added: 0, updated: 0 };
     };
 
@@ -224,7 +213,7 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
 
         for (const erpOffer of fetchedOffers) {
             const customerId = customerCodeToIdMap.get(erpOffer.customerCurrentCode);
-            if (!customerId) continue; // Skip if customer doesn't exist in CRM
+            if (!customerId) continue;
 
             const existing = existingOfferMap.get(erpOffer.teklifNo);
             const { customerCurrentCode, ...restOfErpOffer } = erpOffer;
@@ -232,11 +221,9 @@ export const ErpProvider = ({ children }: ErpProviderProps) => {
 
             if (existing) {
                 updatedCount++;
-                // Fix: Added a non-null assertion `!` because TypeScript was not narrowing the type of 'existing' inside the 'if' block. This assures the compiler that 'existing' is an object, resolving the spread operator error.
                 offersToUpsert.push({ ...existing!, ...fullOfferData });
             } else {
                 addedCount++;
-                // Fix: Cast the created object to `Offer` to resolve a complex type inference issue where `customerId` was being incorrectly typed as `unknown`.
                 offersToUpsert.push({
                     ...fullOfferData,
                     id: uuidv4(),

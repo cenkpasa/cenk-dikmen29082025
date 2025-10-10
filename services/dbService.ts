@@ -1,5 +1,3 @@
-
-
 import Dexie, { type Table } from 'dexie';
 import { 
     User, Customer, Appointment, Interview, Offer, SyncQueueItem, 

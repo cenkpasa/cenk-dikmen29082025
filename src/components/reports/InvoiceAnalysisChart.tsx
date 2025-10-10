@@ -1,0 +1,1 @@
+full contents of src/components/reports/InvoiceAnalysisChart.tsx

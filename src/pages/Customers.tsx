@@ -1,8 +1,3 @@
-
-
-
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -28,21 +23,17 @@ const Customers = ({ setView, view }: { setView: (view: ViewState) => void; view
     const { showNotification } = useNotification();
     const { currentUser } = useAuth();
     
-    // State for modals
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isConfirmArchiveOpen, setIsConfirmArchiveOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [customerToArchive, setCustomerToArchive] = useState<string | null>(null);
-
-    // State for Excel Import Flow
     const [isMapperModalOpen, setIsMapperModalOpen] = useState(false);
     const [isConfirmImportModalOpen, setIsConfirmImportModalOpen] = useState(false);
     const [excelData, setExcelData] = useState<{jsonData: any[], headers: string[]}>({jsonData: [], headers: []});
     const [mappedCustomers, setMappedCustomers] = useState<Omit<Customer, 'id' | 'createdAt'>[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     
-    // State and handlers for Context Menu
     const { menuState, handleContextMenu, handleClose } = useContextMenu();
     const [contextMenuCustomer, setContextMenuCustomer] = useState<Customer | null>(null);
 
@@ -94,7 +85,6 @@ const Customers = ({ setView, view }: { setView: (view: ViewState) => void; view
         setCustomerToArchive(null);
     };
 
-    // --- Excel Import Handlers ---
     const handleExcelUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -118,7 +108,7 @@ const Customers = ({ setView, view }: { setView: (view: ViewState) => void; view
             }
         };
         reader.readAsArrayBuffer(file);
-        event.target.value = ''; // Reset file input
+        event.target.value = '';
     };
 
     const handleMappingConfirmed = (mappedData: Omit<Customer, 'id' | 'createdAt'>[]) => {
@@ -139,13 +129,11 @@ const Customers = ({ setView, view }: { setView: (view: ViewState) => void; view
         setMappedCustomers([]);
     };
 
-    // --- Table & Context Menu Handlers ---
     const handleRowContextMenu = (item: Customer, event: React.MouseEvent) => {
         setContextMenuCustomer(item);
         handleContextMenu(event);
     };
 
-    // FIX: The array items now correctly match the narrowed MenuItem types by using 'as const' for the separator.
     const contextMenuItems: MenuItem[] = contextMenuCustomer ? [
         { label: t('view'), icon: 'fa-eye', action: () => handleView(contextMenuCustomer) },
         { label: t('edit'), icon: 'fa-edit', action: () => handleEdit(contextMenuCustomer), disabled: !canEdit },
@@ -165,9 +153,9 @@ const Customers = ({ setView, view }: { setView: (view: ViewState) => void; view
                 </div>
             )
         },
-        { header: t('email'), accessor: (item: Customer) => item.email || '-' },
-        { header: t('phone'), accessor: (item: Customer) => item.phone1 || '-' },
-        { header: t('createdAt'), accessor: (item: Customer) => formatDate(item.createdAt) },
+        { header: t('email'), accessor: (item: Customer) => <>{item.email || '-'}</> },
+        { header: t('phone'), accessor: (item: Customer) => <>{item.phone1 || '-'}</> },
+        { header: t('createdAt'), accessor: (item: Customer) => <>{formatDate(item.createdAt)}</> },
         {
             header: t('actions'),
             accessor: (item: Customer) => (
@@ -210,7 +198,6 @@ const Customers = ({ setView, view }: { setView: (view: ViewState) => void; view
                 />
             )}
 
-            {/* --- Modals --- */}
             <CustomerForm
                 isOpen={isFormModalOpen}
                 onClose={() => setIsFormModalOpen(false)}
@@ -221,7 +208,6 @@ const Customers = ({ setView, view }: { setView: (view: ViewState) => void; view
                     isOpen={isDetailModalOpen}
                     onClose={() => {
                         setIsDetailModalOpen(false);
-                        // Clear the ID from the view state if it was set by the command palette
                         if (view.id) {
                             setView({ page: 'customers' });
                         }

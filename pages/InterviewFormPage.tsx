@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Interview, Customer } from '../types';
+import { Interview } from '../types';
 import DataTable from '../components/common/DataTable';
 import Button from '../components/common/Button';
 import { ViewState } from '../App';
@@ -59,10 +58,7 @@ const InterviewListPage = ({ setView }: InterviewListPageProps) => {
     );
 };
 
-const SEKTOR_OPTIONS = [
-    "Ahşap Profil", "PVC & Alüminyum Pencere", "Folyo-Kenar Bandı-Bant",
-    "Kasa-Pervaz-Kapı", "Panel", "Mobilya", "Diğer"
-];
+const SEKTOR_OPTIONS = ["DÖKÜM", "KALIPÇILIK", "MEDİKAL", "İMALAT", "SAVUNMA SANAYİ", "GENEL MÜHENDİSLİK", "OTOMATİV", "DEMİRYOLU", "DİĞER"];
 
 interface InterviewFormProps {
     setView: (view: ViewState) => void;
@@ -88,6 +84,7 @@ const InterviewForm = ({ setView, interviewId }: InterviewFormProps) => {
         aksiyonlar: { katalogGonderilecek: false, teklifGonderilecek: false, ziyaretEdilecek: false, bizZiyaretEdecek: { tarih: '', adSoyad: '' } },
         notlar: '',
         gorusmeyiYapan: currentUser?.name || '',
+        gorusmeyiYapanId: currentUser?.id || '',
         aiSummary: ''
     });
 
@@ -107,6 +104,7 @@ const InterviewForm = ({ setView, interviewId }: InterviewFormProps) => {
                 aksiyonlar: interview.aksiyonlar,
                 notlar: interview.notlar,
                 gorusmeyiYapan: interview.gorusmeyiYapan,
+                gorusmeyiYapanId: interview.gorusmeyiYapanId,
                 aiSummary: interview.aiSummary || ''
             });
         }
@@ -199,11 +197,18 @@ const InterviewForm = ({ setView, interviewId }: InterviewFormProps) => {
             setIsAiLoading(false);
         }
     };
+
+    const handleSaveSummary = async () => {
+        if (existingInterview && formState.aiSummary) {
+            await updateInterview({ ...existingInterview, aiSummary: formState.aiSummary });
+            showNotification('summarySaved', 'success');
+        }
+    };
     
     const handleDownloadPdf = async () => {
-        if (!existingInterview) return;
-        const customer = customers.find(c => c.id === existingInterview.customerId);
-        await downloadInterviewAsPdf(existingInterview, customer, t);
+        const interviewToDownload = existingInterview ? { ...existingInterview, ...formState } : { ...formState, id: 'temp', createdAt: '' };
+        const customer = customers.find(c => c.id === interviewToDownload.customerId);
+        await downloadInterviewAsPdf(interviewToDownload, customer, t);
     };
 
     const gridBg = `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='grid' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0 40 L40 40 M40 0 L40 40' fill='none' stroke='%23d1d5db' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23grid)' /%3E%3C/svg%3E")`;
@@ -214,7 +219,7 @@ const InterviewForm = ({ setView, interviewId }: InterviewFormProps) => {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">{isCreateMode ? t('addInterview') : t('interviewForm')}</h1>
                  <div className="flex gap-2">
-                    {!isCreateMode && <Button onClick={handleDownloadPdf} variant="info" icon="fas fa-file-pdf">{t('downloadPdf')}</Button>}
+                    <Button onClick={handleDownloadPdf} variant="info" icon="fas fa-file-pdf">{t('downloadPdf')}</Button>
                     <Button onClick={() => setView({ page: 'gorusme-formu' })} variant="secondary" icon="fas fa-arrow-left">{t('backToList')}</Button>
                 </div>
             </div>
@@ -302,40 +307,34 @@ const InterviewForm = ({ setView, interviewId }: InterviewFormProps) => {
                     ></textarea>
                 </div>
 
-                {/* AI Summary Section */}
-                <div className="mt-6 p-4 rounded-cnk-card bg-cnk-accent-primary/5 border border-cnk-accent-primary/20">
-                    <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-lg font-bold text-cnk-accent-primary flex items-center gap-2">
-                            <i className="fas fa-robot"></i>
-                            <span>{t('aiSummary')}</span>
-                        </h3>
-                        {!isReadOnly && (
-                            <Button
-                                type="button"
-                                onClick={handleGenerateSummary}
-                                isLoading={isAiLoading}
-                                icon="fas fa-wand-magic-sparkles"
-                                disabled={!formState.notlar || isAiLoading}
-                                variant="secondary"
-                            >
-                                {t('summarizeNotes')}
-                            </Button>
-                        )}
-                    </div>
-                    <div className="relative">
-                        {isAiLoading && (
-                            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-md bg-cnk-panel-light/70">
-                                <Loader />
+                {/* AI Assistant */}
+                <div className="mt-4">
+                    <h3 className="text-lg font-semibold text-cnk-txt-primary-light mb-2">{t('aiAssistant')}</h3>
+                     <div className="flex flex-col gap-2">
+                        <Button type="button" onClick={handleGenerateSummary} isLoading={isAiLoading} icon="fas fa-robot" disabled={isReadOnly || !formState.notlar}>
+                            {t('summarizeNotes')}
+                        </Button>
+                        {(isAiLoading || formState.aiSummary) && (
+                            <div className="p-3 bg-slate-50 rounded-lg">
+                                <h4 className="font-semibold text-cnk-txt-secondary-light mb-2">{t('aiSummary')}</h4>
+                                {isAiLoading ? <Loader size="sm" /> : (
+                                    <>
+                                        <textarea
+                                            value={formState.aiSummary || ''}
+                                            onChange={e => setFormState(prev => ({...prev, aiSummary: e.target.value}))}
+                                            readOnly={isReadOnly}
+                                            rows={8}
+                                            className="w-full p-2 border border-cnk-border-light rounded-md"
+                                        />
+                                        {!isCreateMode && !isReadOnly && formState.aiSummary && (
+                                            <Button onClick={handleSaveSummary} size="sm" variant="success" icon="fas fa-save" className="mt-2">
+                                                {t('saveSummary')}
+                                            </Button>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         )}
-                        <textarea
-                            value={formState.aiSummary || ''}
-                            onChange={(e) => setFormState(prev => ({ ...prev, aiSummary: e.target.value }))}
-                            readOnly={isReadOnly}
-                            rows={8}
-                            placeholder={t('aiSummaryPlaceholder')}
-                            className="w-full rounded-md border border-cnk-border-light bg-cnk-panel-light p-2 text-cnk-txt-secondary-light shadow-sm focus:border-cnk-accent-primary focus:outline-none focus:ring-1 focus:ring-cnk-accent-primary"
-                        />
                     </div>
                 </div>
 

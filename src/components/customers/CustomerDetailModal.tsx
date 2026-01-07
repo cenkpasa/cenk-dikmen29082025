@@ -1,1 +1,0 @@
-full contents of src/components/customers/CustomerDetailModal.tsx

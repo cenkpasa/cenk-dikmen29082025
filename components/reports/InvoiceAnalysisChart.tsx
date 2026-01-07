@@ -14,7 +14,7 @@ interface ChartData {
 }
 
 const StatCard = ({ label, value }: { label: string, value: string | number }) => (
-    <div className="bg-cnk-bg-light p-4 rounded-cnk-element text-center">
+    <div className="bg-cnk-bg-light p-4 rounded-lg text-center">
         <p className="text-sm font-medium text-cnk-txt-muted-light">{label}</p>
         <p className="text-2xl font-bold text-cnk-accent-primary">{value}</p>
     </div>
@@ -35,7 +35,7 @@ const InvoiceAnalysisChart = ({ chartData }: { chartData: ChartData }) => {
             </div>
 
             {/* Monthly Trend */}
-            <div className="bg-cnk-bg-light p-4 rounded-cnk-element">
+            <div className="bg-cnk-bg-light p-4 rounded-lg">
                 <h4 className="font-bold mb-4">{t('monthlySpendingTrend')}</h4>
                 <div className="flex items-end h-48 space-x-2 border-l border-b border-cnk-border-light pl-2 pb-2">
                     {monthly.data.map((value, index) => (
@@ -51,7 +51,7 @@ const InvoiceAnalysisChart = ({ chartData }: { chartData: ChartData }) => {
             </div>
 
             {/* Category Distribution */}
-            <div className="bg-cnk-bg-light p-4 rounded-cnk-element">
+            <div className="bg-cnk-bg-light p-4 rounded-lg">
                  <h4 className="font-bold mb-4">{t('categoryDistribution')}</h4>
                  <div className="space-y-2">
                     {categories.slice(0, 5).map(cat => {

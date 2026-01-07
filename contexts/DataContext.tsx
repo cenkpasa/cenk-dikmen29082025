@@ -1,25 +1,24 @@
-
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Customer, Appointment, Interview, Offer } from '@/types';
-import { db } from '@/services/dbService';
-import { useNotificationCenter } from '@/contexts/NotificationCenterContext';
+import { Customer, Appointment, Interview, Offer, Task, Expense } from '../types';
+import { db } from '../services/dbService';
+import { useNotificationCenter } from './NotificationCenterContext';
 import { v4 as uuidv4 } from 'uuid';
-import { auditLogService } from '@/services/auditLogService';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNotification } from './NotificationContext';
+import { auditLogService } from '../services/auditLogService';
+import { useAuth } from './AuthContext';
+import { updateAllCustomerSegments } from '../services/customerAnalysisService';
 
 interface DataContextType {
     customers: Customer[];
     addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => Promise<string>;
     updateCustomer: (customer: Customer) => Promise<void>;
-    archiveCustomer: (customerId: string) => Promise<void>;
+    deleteCustomer: (customerId: string) => Promise<void>;
     bulkAddCustomers: (newCustomers: Omit<Customer, 'id' | 'createdAt'>[]) => Promise<number>;
     
     appointments: Appointment[];
     addAppointment: (appointment: Omit<Appointment, 'id' | 'createdAt'>) => Promise<void>;
     updateAppointment: (appointment: Appointment) => Promise<void>;
-    cancelAppointment: (appointmentId: string) => Promise<void>;
+    deleteAppointment: (appointmentId: string) => Promise<void>;
 
     interviews: Interview[];
     addInterview: (interview: Omit<Interview, 'id' | 'createdAt'>) => Promise<void>;
@@ -29,46 +28,132 @@ interface DataContextType {
     addOffer: (offer: Omit<Offer, 'id' | 'teklifNo' | 'createdAt'>) => Promise<void>;
     updateOffer: (offer: Offer) => Promise<void>;
     bulkAddOffers: (newOffersData: Omit<Offer, 'id' | 'createdAt' | 'teklifNo'>[]) => Promise<number>;
+
+    tasks: Task[];
+    addTask: (task: Omit<Task, 'id' | 'createdAt'>) => Promise<void>;
+    updateTask: (task: Task) => Promise<void>;
+    deleteTask: (taskId: string) => Promise<void>;
+
+    expenses: Expense[];
+    addExpense: (expense: Omit<Expense, 'id' | 'createdAt' | 'userId'>) => Promise<void>;
+    updateExpense: (expense: Expense) => Promise<void>;
+    deleteExpense: (expenseId: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-interface DataProviderProps {
-    children: ReactNode;
-}
-
-export const DataProvider = ({ children }: DataProviderProps) => {
+export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const { addNotification } = useNotificationCenter();
-    const { showNotification } = useNotification();
     const { currentUser } = useAuth();
+    const processedReminders = useRef<Set<string>>(new Set());
+
+    // Otomatik Segmentasyon Tetikleyici
+    useEffect(() => {
+        updateAllCustomerSegments();
+        const analysisInterval = setInterval(updateAllCustomerSegments, 5 * 60 * 1000); // 5 dakikada bir
+        return () => clearInterval(analysisInterval);
+    }, []);
+
+    // Randevu Hatırlatıcı Takibi
+    useEffect(() => {
+        const checkReminders = () => {
+            if (!appointments) return;
+            const now = new Date();
+
+            appointments.forEach(app => {
+                if (!app.reminder || app.reminder === 'none' || processedReminders.current.has(app.id)) return;
+
+                const startTime = new Date(app.start);
+                const diffMinutes = (startTime.getTime() - now.getTime()) / (1000 * 60);
+
+                let shouldRemind = false;
+                let timeText = '';
+
+                if (app.reminder === '15m' && diffMinutes > 0 && diffMinutes <= 15) {
+                    shouldRemind = true;
+                    timeText = '15 dakika';
+                } else if (app.reminder === '1h' && diffMinutes > 0 && diffMinutes <= 60) {
+                    shouldRemind = true;
+                    timeText = '1 saat';
+                } else if (app.reminder === '1d' && diffMinutes > 0 && diffMinutes <= 1440) {
+                    shouldRemind = true;
+                    timeText = '1 gün';
+                }
+
+                if (shouldRemind) {
+                    addNotification({
+                        messageKey: 'activityAppointmentReminder',
+                        replacements: { title: app.title, time: timeText },
+                        type: 'appointment',
+                        link: { page: 'appointments' }
+                    });
+                    processedReminders.current.add(app.id);
+                    // Gerçek e-posta gönderimi simülasyonu
+                    console.log(`[Reminder] E-posta gönderildi: ${app.title} randevunuza ${timeText} kaldı.`);
+                }
+            });
+        };
+
+        const reminderInterval = setInterval(checkReminders, 30000); // 30 saniyede bir kontrol
+        return () => clearInterval(reminderInterval);
+    }, [addNotification]);
     
-    const customers = useLiveQuery(() => db.customers.orderBy('createdAt').reverse().toArray(), []) || [];
-    const appointments = useLiveQuery(() => db.appointments.toArray(), []) || [];
-    const interviews = useLiveQuery(() => db.interviews.toArray(), []) || [];
-    const offers = useLiveQuery(() => db.offers.toArray(), []) || [];
+    const customers = useLiveQuery(() => {
+        if (!currentUser) return [];
+        if (currentUser.role === 'saha') {
+            return db.customers.where('assignedToId').equals(currentUser.id).reverse().sortBy('createdAt');
+        }
+        return db.customers.orderBy('createdAt').reverse().toArray();
+    }, [currentUser]) || [];
+    
+    const appointments = useLiveQuery(() => {
+        if (!currentUser) return [];
+        if (currentUser.role === 'saha') {
+            return db.appointments.where('assignedToId').equals(currentUser.id).toArray();
+        }
+        return db.appointments.toArray();
+    }, [currentUser]) || [];
+
+    const interviews = useLiveQuery(() => {
+        if (!currentUser) return [];
+        if (currentUser.role === 'saha') {
+            return db.interviews.where('gorusmeyiYapanId').equals(currentUser.id).toArray();
+        }
+        return db.interviews.toArray();
+    }, [currentUser]) || [];
+
+    const offers = useLiveQuery(() => {
+        if (!currentUser) return [];
+        if (currentUser.role === 'saha') {
+            return db.offers.where('teklifVerenId').equals(currentUser.id).toArray();
+        }
+        return db.offers.toArray();
+    }, [currentUser]) || [];
+
+    const tasks = useLiveQuery(() => {
+        if (!currentUser) return [];
+        if (currentUser.role === 'saha') {
+            return db.tasks.where('assignedToId').equals(currentUser.id).toArray();
+        }
+        return db.tasks.toArray();
+    }, [currentUser]) || [];
+
+    const expenses = useLiveQuery(() => {
+        if (!currentUser) return [];
+        if (currentUser.role === 'saha') {
+            return db.expenses.where('userId').equals(currentUser.id).toArray();
+        }
+        return db.expenses.toArray();
+    }, [currentUser]) || [];
 
     // Customer Actions
     const addCustomer = async (customerData: Omit<Customer, 'id' | 'createdAt'>): Promise<string> => {
         if (!currentUser) throw new Error("User not authenticated");
-        
-        const isOnline = navigator.onLine;
-
         const newCustomer: Customer = { 
             ...customerData, 
             id: uuidv4(), 
-            createdAt: new Date().toISOString(),
-            synced: isOnline
+            createdAt: new Date().toISOString()
         };
-
-        if (!isOnline) {
-            await db.syncQueue.add({
-                type: 'add-customer',
-                payload: newCustomer,
-                timestamp: Date.now()
-            });
-            showNotification('offlineQueueAdd', 'info');
-        }
-
         const newId = await db.customers.add(newCustomer);
         addNotification({
             messageKey: 'activityCustomerAdded',
@@ -86,11 +171,11 @@ export const DataProvider = ({ children }: DataProviderProps) => {
         await auditLogService.logAction(currentUser, 'UPDATE_CUSTOMER', 'customer', updatedCustomer.id, `Customer '${updatedCustomer.name}' updated.`);
     };
 
-    const archiveCustomer = async (customerId: string) => {
+    const deleteCustomer = async (customerId: string) => {
         if (!currentUser) throw new Error("User not authenticated");
-        const customerToArchive = customers.find(c => c.id === customerId);
-        await db.customers.update(customerId, { status: 'passive' });
-        await auditLogService.logAction(currentUser, 'ARCHIVE_CUSTOMER', 'customer', customerId, `Customer '${customerToArchive?.name || customerId}' archived.`);
+        const customerToDelete = customers.find(c => c.id === customerId);
+        await db.customers.delete(customerId);
+        await auditLogService.logAction(currentUser, 'DELETE_CUSTOMER', 'customer', customerId, `Customer '${customerToDelete?.name || customerId}' deleted.`);
     };
 
     const bulkAddCustomers = async (newCustomersData: Omit<Customer, 'id' | 'createdAt'>[]) => {
@@ -106,8 +191,7 @@ export const DataProvider = ({ children }: DataProviderProps) => {
                 customersToAdd.push({
                     ...newCust,
                     id: uuidv4(),
-                    createdAt: new Date().toISOString(),
-                    synced: true,
+                    createdAt: new Date().toISOString()
                 });
             }
         }
@@ -125,8 +209,7 @@ export const DataProvider = ({ children }: DataProviderProps) => {
         const newAppointment: Appointment = {
             ...appointmentData,
             id: uuidv4(),
-            createdAt: new Date().toISOString(),
-            status: 'active'
+            createdAt: new Date().toISOString()
         };
         const newId = await db.appointments.add(newAppointment);
         addNotification({
@@ -144,11 +227,11 @@ export const DataProvider = ({ children }: DataProviderProps) => {
         await auditLogService.logAction(currentUser, 'UPDATE_APPOINTMENT', 'appointment', updatedAppointment.id, `Appointment '${updatedAppointment.title}' updated.`);
     };
 
-    const cancelAppointment = async (appointmentId: string) => {
+    const deleteAppointment = async (appointmentId: string) => {
         if (!currentUser) throw new Error("User not authenticated");
-        const appToCancel = appointments.find(a => a.id === appointmentId);
-        await db.appointments.update(appointmentId, { status: 'cancelled' });
-        await auditLogService.logAction(currentUser, 'CANCEL_APPOINTMENT', 'appointment', appointmentId, `Appointment '${appToCancel?.title || appointmentId}' cancelled.`);
+        const appToDelete = appointments.find(a => a.id === appointmentId);
+        await db.appointments.delete(appointmentId);
+        await auditLogService.logAction(currentUser, 'DELETE_APPOINTMENT', 'appointment', appointmentId, `Appointment '${appToDelete?.title || appointmentId}' deleted.`);
     };
 
     // Interview Actions
@@ -168,6 +251,16 @@ export const DataProvider = ({ children }: DataProviderProps) => {
             link: { page: 'gorusme-formu', id: newId as string }
         });
         await auditLogService.logAction(currentUser, 'CREATE_INTERVIEW', 'interview', newId as string, `Interview with '${customer?.name}' created.`);
+        
+        // Auto-create task
+        await addTask({
+            title: `${customer?.name} için görüşme takibi`,
+            description: `Yeni görüşme formu eklendi. ${newInterview.notlar.substring(0, 100)}...`,
+            status: 'pending',
+            assignedToId: currentUser.id,
+            relatedToEntity: 'customer',
+            relatedToId: newInterview.customerId
+        });
     };
 
     const updateInterview = async (updatedInterview: Interview) => {
@@ -184,8 +277,7 @@ export const DataProvider = ({ children }: DataProviderProps) => {
             ...offerData,
             id: uuidv4(),
             teklifNo: 'TEK-' + Date.now().toString().slice(-6),
-            createdAt: new Date().toISOString(),
-            status: 'draft'
+            createdAt: new Date().toISOString()
         };
         const newId = await db.offers.add(newOffer);
         addNotification({
@@ -209,9 +301,8 @@ export const DataProvider = ({ children }: DataProviderProps) => {
              ...newOffer,
              id: uuidv4(),
              createdAt: new Date().toISOString(),
-             teklifNo: 'TEK-' + Date.now().toString().slice(-6) + Math.random().toString(36).substring(2, 4),
-             status: 'draft'
-        } as Offer));
+             teklifNo: 'TEK-' + Date.now().toString().slice(-6) + Math.random().toString(36).substring(2, 4)
+        }));
 
         if (offersToAdd.length > 0) {
             await db.offers.bulkAdd(offersToAdd);
@@ -219,12 +310,54 @@ export const DataProvider = ({ children }: DataProviderProps) => {
         }
         return offersToAdd.length;
     }
+
+    const addTask = async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+        if (!currentUser) throw new Error("User not authenticated");
+        const newTask: Task = { ...taskData, id: uuidv4(), createdAt: new Date().toISOString() };
+        await db.tasks.add(newTask);
+        await auditLogService.logAction(currentUser, 'CREATE_TASK', 'task', newTask.id, `Task '${newTask.title}' created.`);
+    };
+
+    const updateTask = async (updatedTask: Task) => {
+        if (!currentUser) throw new Error("User not authenticated");
+        await db.tasks.put(updatedTask);
+        await auditLogService.logAction(currentUser, 'UPDATE_TASK', 'task', updatedTask.id, `Task '${updatedTask.title}' updated.`);
+    };
+
+    const deleteTask = async (taskId: string) => {
+        if (!currentUser) throw new Error("User not authenticated");
+        const taskToDelete = await db.tasks.get(taskId);
+        await db.tasks.delete(taskId);
+        await auditLogService.logAction(currentUser, 'DELETE_TASK', 'task', taskId, `Task '${taskToDelete?.title || taskId}' deleted.`);
+    };
+    
+    const addExpense = async (expenseData: Omit<Expense, 'id' | 'createdAt' | 'userId'>) => {
+        if (!currentUser) throw new Error("User not authenticated");
+        const newExpense: Expense = { ...expenseData, id: uuidv4(), userId: currentUser.id, createdAt: new Date().toISOString() };
+        await db.expenses.add(newExpense);
+        await auditLogService.logAction(currentUser, 'CREATE_EXPENSE', 'expense', newExpense.id, `Expense of ${newExpense.amount} created.`);
+    };
+
+    const updateExpense = async (updatedExpense: Expense) => {
+        if (!currentUser) throw new Error("User not authenticated");
+        await db.expenses.put(updatedExpense);
+        await auditLogService.logAction(currentUser, 'UPDATE_EXPENSE', 'expense', updatedExpense.id, `Expense of ${updatedExpense.amount} updated.`);
+    };
+
+    const deleteExpense = async (expenseId: string) => {
+        if (!currentUser) throw new Error("User not authenticated");
+        const expenseToDelete = await db.expenses.get(expenseId);
+        await db.expenses.delete(expenseId);
+        await auditLogService.logAction(currentUser, 'DELETE_EXPENSE', 'expense', expenseId, `Expense '${expenseToDelete?.description || expenseId}' deleted.`);
+    };
     
     const value = {
-        customers, addCustomer, updateCustomer, archiveCustomer, bulkAddCustomers,
-        appointments, addAppointment, updateAppointment, cancelAppointment,
+        customers, addCustomer, updateCustomer, deleteCustomer, bulkAddCustomers,
+        appointments, addAppointment, updateAppointment, deleteAppointment,
         interviews, addInterview, updateInterview,
         offers, addOffer, updateOffer, bulkAddOffers,
+        tasks, addTask, updateTask, deleteTask,
+        expenses, addExpense, updateExpense, deleteExpense,
     };
 
     return (

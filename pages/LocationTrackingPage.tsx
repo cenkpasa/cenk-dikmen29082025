@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -8,7 +6,18 @@ import { usePersonnel } from '../contexts/PersonnelContext';
 import { User, LocationRecord } from '../types';
 import { WORKPLACE_COORDS } from '../constants';
 import Button from '../components/common/Button';
-import { getDistance } from '../utils/location';
+
+// Haversine formula to calculate distance between two lat/lon points in km
+const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Radius of the earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+};
 
 const MapView = ({ locations }: { locations: LocationRecord[] }) => {
     const mapUrl = useMemo(() => {

@@ -1,1 +1,0 @@
-full contents of src/services/syncService.ts

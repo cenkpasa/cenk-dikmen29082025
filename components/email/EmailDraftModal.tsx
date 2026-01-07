@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { EmailDraft } from '../../types';
 import Modal from '../common/Modal';

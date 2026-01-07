@@ -1,1 +1,0 @@
-full contents of src/components/assets/BworksLogo.tsx

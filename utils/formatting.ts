@@ -1,5 +1,4 @@
-
-import { Offer } from '@/types';
+import { Offer } from '../types';
 
 type Currency = Offer['currency'];
 

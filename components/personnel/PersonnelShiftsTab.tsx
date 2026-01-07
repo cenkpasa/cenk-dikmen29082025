@@ -1,11 +1,9 @@
-
 import React, { useState, useMemo } from 'react';
 import { User, ShiftAssignment, ShiftTemplate } from '../../types';
 import { usePersonnel } from '../../contexts/PersonnelContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import Button from '../common/Button';
 import Modal from '../common/Modal';
-import DataTable from '../common/DataTable';
 
 const AssignShiftModal = ({ isOpen, onClose, personnel, onAssign }: { isOpen: boolean, onClose: () => void, personnel: User, onAssign: (shiftTemplateId: string, date: string) => void }) => {
     const { t } = useLanguage();
@@ -49,51 +47,58 @@ const AssignShiftModal = ({ isOpen, onClose, personnel, onAssign }: { isOpen: bo
 
 const PersonnelShiftsTab = ({ personnel }: { personnel: User }) => {
     const { t } = useLanguage();
-    const { getShiftAssignmentsForUser, shiftTemplates, assignShift } = usePersonnel();
+    const { getShiftAssignmentsForUser, shiftTemplates, assignShift, deleteShiftAssignment } = usePersonnel();
+    const [currentDate, setCurrentDate] = useState(new Date());
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const shiftAssignments = useMemo(() => 
-        getShiftAssignmentsForUser(personnel.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), 
-        [getShiftAssignmentsForUser, personnel.id]
-    );
+    const shiftAssignments = useMemo(() => getShiftAssignmentsForUser(personnel.id), [getShiftAssignmentsForUser, personnel.id]);
     const shiftTemplateMap = new Map(shiftTemplates.map(st => [st.id, st]));
+
+    const startOfWeek = new Date(currentDate);
+    startOfWeek.setDate(currentDate.getDate() - (currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1));
+
+    const weekDays = Array.from({ length: 7 }, (_, i) => {
+        const day = new Date(startOfWeek);
+        day.setDate(startOfWeek.getDate() + i);
+        return day;
+    });
 
     const handleAssign = (shiftTemplateId: string, date: string) => {
         assignShift({ personnelId: personnel.id, shiftTemplateId, date });
     };
 
-    const columns = [
-        { 
-            header: t('date'), 
-            accessor: (item: ShiftAssignment) => new Date(item.date).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }) 
-        },
-        { 
-            header: "Vardiya Adı", 
-            accessor: (item: ShiftAssignment) => shiftTemplateMap.get(item.shiftTemplateId)?.name || 'Bilinmeyen Vardiya'
-        },
-        { 
-            header: "Başlangıç", 
-            accessor: (item: ShiftAssignment) => shiftTemplateMap.get(item.shiftTemplateId)?.startTime
-        },
-        { 
-            header: "Bitiş", 
-            accessor: (item: ShiftAssignment) => shiftTemplateMap.get(item.shiftTemplateId)?.endTime
-        }
-    ];
-
     return (
         <div>
             {isModalOpen && <AssignShiftModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} personnel={personnel} onAssign={handleAssign} />}
             <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-lg">Atanmış Vardiyalar</h3>
+                <div className="flex items-center gap-2">
+                    <Button size="sm" variant="secondary" icon="fas fa-chevron-left" onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))} />
+                    <h3 className="font-bold text-lg">{startOfWeek.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}</h3>
+                    <Button size="sm" variant="secondary" icon="fas fa-chevron-right" onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))} />
+                </div>
                 <Button onClick={() => setIsModalOpen(true)} icon="fas fa-plus">{t('assignShift')}</Button>
             </div>
 
-            <DataTable
-                columns={columns}
-                data={shiftAssignments}
-                emptyStateMessage="Bu personele atanmış vardiya bulunmuyor."
-            />
+            <div className="grid grid-cols-7 gap-1 bg-cnk-bg-light p-1 rounded-lg">
+                {weekDays.map(day => {
+                    const dayString = day.toISOString().slice(0, 10);
+                    const assignment = shiftAssignments.find(a => a.date === dayString);
+                    const shift = assignment ? shiftTemplateMap.get(assignment.shiftTemplateId) : null;
+                    return (
+                        <div key={dayString} className="bg-cnk-panel-light rounded-md p-2 min-h-[80px]">
+                            <p className="font-bold text-center text-sm">{day.toLocaleDateString('tr-TR', { weekday: 'short' })}</p>
+                            <p className="text-center text-xs text-cnk-txt-muted-light">{day.getDate()}</p>
+                            {shift && (
+                                <div className="mt-2 bg-blue-100 text-blue-800 text-xs rounded p-1 text-center relative group">
+                                    <p className="font-semibold">{shift.name}</p>
+                                    <p>{shift.startTime} - {shift.endTime}</p>
+                                    <button onClick={() => deleteShiftAssignment(assignment!.id)} className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity">&times;</button>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 };

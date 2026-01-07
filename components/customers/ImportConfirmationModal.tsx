@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Customer } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';

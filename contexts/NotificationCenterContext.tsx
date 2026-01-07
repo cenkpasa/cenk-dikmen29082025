@@ -21,7 +21,7 @@ interface NotificationCenterContextType {
 
 const NotificationCenterContext = createContext<NotificationCenterContextType | undefined>(undefined);
 
-export const NotificationCenterProvider = ({ children }: { children: ReactNode }) => {
+export const NotificationCenterProvider = ({ children }: { children?: ReactNode }) => {
     
     const notifications = useLiveQuery(
         () => db.notifications.orderBy('timestamp').reverse().toArray(),

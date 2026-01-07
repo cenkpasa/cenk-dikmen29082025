@@ -1,9 +1,8 @@
-
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { Offer, Customer, Reconciliation, Interview, IncomingInvoice, OutgoingInvoice } from '@/types';
-import { COMPANY_INFO, ASSETS } from '@/constants';
-import { formatCurrency, formatDate, formatDateTime } from '@/utils/formatting';
+import { Offer, Customer, Reconciliation, Interview, IncomingInvoice, OutgoingInvoice } from '../types';
+import { COMPANY_INFO, ASSETS } from '../constants';
+import { formatCurrency, formatDate } from '../utils/formatting';
 
 export const getOfferHtml = (offer: Offer, customer: Customer | undefined, t: (key: string, replacements?: Record<string, string>) => string): string => {
     return `
@@ -121,47 +120,6 @@ export const getOfferHtml = (offer: Offer, customer: Customer | undefined, t: (k
     `;
 };
 
-
-export const downloadOfferAsPdf = async (offer: Offer, customer: Customer | undefined, t: (key: string, replacements?: Record<string, string>) => string): Promise<{success: boolean}> => {
-    
-    const offerContentHtml = getOfferHtml(offer, customer, t);
-
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.innerHTML = offerContentHtml;
-    document.body.appendChild(container);
-
-    try {
-        const canvas = await html2canvas(container.children[0] as HTMLElement, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-        let heightLeft = pdfHeight;
-        let position = 0;
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight, undefined, 'FAST');
-        heightLeft -= pdf.internal.pageSize.getHeight();
-
-        while (heightLeft > 0) {
-            position = -heightLeft;
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight, undefined, 'FAST');
-            heightLeft -= pdf.internal.pageSize.getHeight();
-        }
-
-        pdf.save(`Teklif_${offer.teklifNo}.pdf`);
-        return { success: true };
-    } catch (error) {
-        console.error('PDF generation error:', error);
-        return { success: false };
-    } finally {
-        document.body.removeChild(container);
-    }
-};
-
 const InfoRow = (label: string, value: string) => `
     <tr>
         <td style="padding: 2px 0; font-weight: normal; width: 100px;">${label}</td>
@@ -171,7 +129,6 @@ const InfoRow = (label: string, value: string) => `
 `;
 
 export const getReconciliationHtml = (reconciliation: Reconciliation, customer: Customer, invoices: (IncomingInvoice | OutgoingInvoice)[], t: (key: string) => string): string => {
-    
     return `
     <div style="font-family: Arial, sans-serif; width: 210mm; min-height: 297mm; padding: 15mm; box-sizing: border-box; font-size: 11pt; color: #333; display: flex; flex-direction: column;">
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
@@ -255,8 +212,15 @@ export const getReconciliationHtml = (reconciliation: Reconciliation, customer: 
 
 export const getInterviewHtml = (interview: Interview, customer: Customer | undefined, t: (key: string) => string): string => {
     const SEKTOR_OPTIONS = [
-        "Ahşap Profil", "PVC & Alüminyum Pencere", "Folyo-Kenar Bandı-Bant",
-        "Kasa-Pervaz-Kapı", "Panel", "Mobilya", "Diğer"
+        "DÖKÜM", 
+        "KALIPÇILIK", 
+        "MEDİKAL",
+        "İMALAT", 
+        "SAVUNMA SANAYİ", 
+        "GENEL MÜHENDİSLİK", 
+        "OTOMATİV", 
+        "DEMİRYOLU", 
+        "DİĞER"
     ];
 
     return `
@@ -333,12 +297,12 @@ const downloadPdf = async (htmlContent: string, fileName: string): Promise<{succ
     const container = document.createElement('div');
     container.style.position = 'absolute';
     container.style.left = '-9999px';
-    container.innerHTML = htmlContent;
+    container.style.width = '210mm'; // A4 width
     document.body.appendChild(container);
+    container.innerHTML = htmlContent;
 
     try {
-        // Using container.children[0] is crucial to avoid capturing whitespace text nodes.
-        const canvas = await html2canvas(container.children[0] as HTMLElement, { scale: 2, useCORS: true });
+        const canvas = await html2canvas(container.firstChild as HTMLElement, { scale: 2, useCORS: true, width: container.offsetWidth, height: container.offsetHeight });
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -353,6 +317,11 @@ const downloadPdf = async (htmlContent: string, fileName: string): Promise<{succ
     } finally {
         document.body.removeChild(container);
     }
+};
+
+export const downloadOfferAsPdf = async (offer: Offer, customer: Customer | undefined, t: (key: string, replacements?: Record<string, string>) => string): Promise<{success: boolean}> => {
+    const html = getOfferHtml(offer, customer, t);
+    return downloadPdf(html, `Teklif_${offer.teklifNo}.pdf`);
 };
 
 export const downloadReconciliationAsPdf = (reconciliation: Reconciliation, customer: Customer, invoices: (IncomingInvoice | OutgoingInvoice)[], t: (key: string) => string) => {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../contexts/DataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -80,9 +79,11 @@ const AppointmentForm = ({ isOpen, onClose, appointment, defaultDate }: Appointm
         const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
         const endDateTime = new Date(`${formData.endDate}T${formData.endTime}`);
 
+        // FIX: Added `assignedToId` to satisfy the Appointment type.
         const appointmentData: Omit<Appointment, 'id' | 'createdAt'> = {
             customerId: formData.customerId,
             userId: currentUser.id,
+            assignedToId: currentUser.id,
             title: formData.title,
             start: startDateTime.toISOString(),
             end: endDateTime.toISOString(),

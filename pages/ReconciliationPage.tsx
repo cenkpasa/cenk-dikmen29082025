@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { IncomingInvoice, OutgoingInvoice, Reconciliation, Customer } from '../types';
 import { useReconciliation } from '../contexts/ReconciliationContext';
-import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { db, seedInitialData } from '../services/dbService';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -12,7 +11,6 @@ import DataTable from '../components/common/DataTable';
 import Modal from '../components/common/Modal';
 import { downloadReconciliationAsPdf } from '../services/pdfService';
 import { analyzeDisagreement, generateReconciliationEmail } from '../services/aiService';
-import Loader from '../components/common/Loader';
 import { formatCurrency, formatDate } from '../utils/formatting';
 
 interface MatchedPair {
@@ -30,15 +28,17 @@ const ReconciliationDetailView = ({ reconciliation, onBack, incomingInvoices, ou
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisResult, setAnalysisResult] = useState(reconciliation.aiAnalysis || '');
     const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     const customer = useMemo(() => customers.find(c => c.id === reconciliation.customerId), [customers, reconciliation.customerId]);
     const relatedInvoices = useMemo(() => {
-        const incoming = incomingInvoices.find(i => i.faturaNo === reconciliation.incomingInvoiceId);
-        const outgoing = outgoingInvoices.find(i => i.faturaNo === reconciliation.outgoingInvoiceId);
+        const incoming = incomingInvoices.find(i => i.id === reconciliation.incomingInvoiceId);
+        const outgoing = outgoingInvoices.find(i => i.id === reconciliation.outgoingInvoiceId);
         return { incoming, outgoing };
     }, [reconciliation, incomingInvoices, outgoingInvoices]);
 
     const handleDownloadPdf = async () => {
+        setIsDownloading(true);
         if (customer && relatedInvoices.incoming && relatedInvoices.outgoing) {
             const result = await downloadReconciliationAsPdf(reconciliation, customer, [relatedInvoices.incoming, relatedInvoices.outgoing], t);
             if (result.success) {
@@ -47,6 +47,7 @@ const ReconciliationDetailView = ({ reconciliation, onBack, incomingInvoices, ou
                 showNotification('pdfError', 'error');
             }
         }
+        setIsDownloading(false);
     };
 
     const handleAnalyzeResponse = async () => {
@@ -82,14 +83,14 @@ const ReconciliationDetailView = ({ reconciliation, onBack, incomingInvoices, ou
             <div className="flex justify-between items-center">
                 <Button onClick={onBack} icon="fas fa-arrow-left" variant="secondary">{t('backToList')}</Button>
                 <div className="flex gap-2">
-                    <Button onClick={handleDownloadPdf} icon="fas fa-file-pdf">{t('downloadPdf')}</Button>
+                    <Button onClick={handleDownloadPdf} icon="fas fa-file-pdf" isLoading={isDownloading}>{t('downloadPdf')}</Button>
                     <Button onClick={() => handleGenerateEmail('reminder')} icon="fas fa-envelope" isLoading={isGeneratingEmail}>{t('sendEmail')}</Button>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2 space-y-4">
-                    <div className="p-4 bg-cnk-panel-light rounded-cnk-element shadow-sm border">
+                    <div className="p-4 bg-cnk-panel-light rounded-lg shadow-sm border">
                         <h3 className="font-bold text-lg mb-2">{t('reconciliationDetails')}</h3>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <p><strong>{t('customer')}:</strong> {customer.name}</p>
@@ -98,7 +99,7 @@ const ReconciliationDetailView = ({ reconciliation, onBack, incomingInvoices, ou
                             <p><strong>{t('amount')}:</strong> {formatCurrency(reconciliation.amount, reconciliation.currency)}</p>
                         </div>
                     </div>
-                    <div className="p-4 bg-cnk-panel-light rounded-cnk-element shadow-sm border">
+                    <div className="p-4 bg-cnk-panel-light rounded-lg shadow-sm border">
                         <h3 className="font-bold text-lg mb-2">{t('matchedInvoices')}</h3>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div><strong>{t('incomingInvoices')}:</strong> <span className="font-mono">{relatedInvoices.incoming?.faturaNo}</span></div>
@@ -106,7 +107,7 @@ const ReconciliationDetailView = ({ reconciliation, onBack, incomingInvoices, ou
                         </div>
                     </div>
                 </div>
-                <div className="p-4 bg-cnk-panel-light rounded-cnk-element shadow-sm border">
+                <div className="p-4 bg-cnk-panel-light rounded-lg shadow-sm border">
                     <h3 className="font-bold text-lg mb-2">{t('disagreementDetails')}</h3>
                     <textarea
                         value={customerResponse}
@@ -127,7 +128,6 @@ const ReconciliationDetailView = ({ reconciliation, onBack, incomingInvoices, ou
 const ReconciliationPage = () => {
     const { t } = useLanguage();
     const { reconciliations, addReconciliation } = useReconciliation();
-    const { currentUser } = useAuth();
     const { showNotification } = useNotification();
     const { customers } = useData();
 
@@ -140,46 +140,23 @@ const ReconciliationPage = () => {
         const matchedIncomingIds = new Set(reconciliations.map(r => r.incomingInvoiceId));
         const matchedOutgoingIds = new Set(reconciliations.map(r => r.outgoingInvoiceId));
         return {
-            incoming: incomingInvoices.filter(i => !matchedIncomingIds.has(i.faturaNo)),
-            outgoing: outgoingInvoices.filter(i => !matchedOutgoingIds.has(i.faturaNo)),
+            incoming: incomingInvoices.filter(i => !matchedIncomingIds.has(i.id)),
+            outgoing: outgoingInvoices.filter(i => !matchedOutgoingIds.has(i.id)),
         };
     }, [reconciliations, incomingInvoices, outgoingInvoices]);
 
     const autoMatchedPairs = useMemo(() => {
         const pairs: MatchedPair[] = [];
-        if (unmatchedInvoices.outgoing.length === 0 || unmatchedInvoices.incoming.length === 0) {
-            return pairs;
-        }
+        const unmatchedOutgoingCopy = [...unmatchedInvoices.outgoing];
 
-        // Create a map of outgoing invoices for quick lookup. 
-        // The value is an array to handle multiple identical invoices.
-        const outgoingMap = new Map<string, OutgoingInvoice[]>();
-        unmatchedInvoices.outgoing.forEach(out => {
-            const key = `${out.vergiNo}_${out.tutar}`;
-            if (!outgoingMap.has(key)) {
-                outgoingMap.set(key, []);
-            }
-            outgoingMap.get(key)!.push(out);
-        });
-
-        // Iterate through incoming invoices and find a match from the map.
         unmatchedInvoices.incoming.forEach(inc => {
-            const key = `${inc.vergiNo}_${inc.tutar}`;
-            const potentialMatches = outgoingMap.get(key);
-
-            // If a match is found, take the first one and remove it from the pool.
-            if (potentialMatches && potentialMatches.length > 0) {
-                const match = potentialMatches.shift(); // "Consume" the invoice
-                if (match) {
-                    pairs.push({
-                        incoming: inc,
-                        outgoing: match,
-                        matchType: 'perfect'
-                    });
-                }
+            const perfectMatchIndex = unmatchedOutgoingCopy.findIndex(out => out.vergiNo === inc.vergiNo && out.tutar === inc.tutar);
+            if (perfectMatchIndex > -1) {
+                const perfectMatch = unmatchedOutgoingCopy[perfectMatchIndex];
+                pairs.push({ incoming: inc, outgoing: perfectMatch, matchType: 'perfect' });
+                unmatchedOutgoingCopy.splice(perfectMatchIndex, 1);
             }
         });
-
         return pairs;
     }, [unmatchedInvoices]);
 
@@ -198,8 +175,8 @@ const ReconciliationPage = () => {
                     period: new Date(pair.incoming.tarih).toISOString().slice(0, 7),
                     amount: pair.incoming.tutar,
                     currency: pair.incoming.currency,
-                    incomingInvoiceId: pair.incoming.faturaNo,
-                    outgoingInvoiceId: pair.outgoing.faturaNo,
+                    incomingInvoiceId: pair.incoming.id,
+                    outgoingInvoiceId: pair.outgoing.id,
                 });
                 createdCount++;
             }
@@ -244,10 +221,6 @@ const ReconciliationPage = () => {
         { header: t('totalAmount'), accessor: (item: any) => formatCurrency(item.tutar, item.currency) },
     ];
 
-    if (currentUser?.role !== 'admin' && currentUser?.role !== 'muhasebe') {
-        return <p className="text-center p-4 bg-yellow-500/10 text-yellow-300 rounded-lg">{t('permissionDenied')}</p>;
-    }
-
     if (selectedReconciliation) {
         return <ReconciliationDetailView 
             reconciliation={selectedReconciliation} 
@@ -267,17 +240,17 @@ const ReconciliationPage = () => {
                 </div>
             </div>
 
-            <div className="bg-cnk-panel-light p-4 rounded-cnk-card shadow-md border">
+            <div className="bg-cnk-panel-light p-4 rounded-lg shadow-sm border">
                 <h2 className="text-lg font-bold mb-2">{t('reconciliations')}</h2>
                 <DataTable columns={reconciliationColumns} data={reconciliations} emptyStateMessage={t('noReconciliationYet')} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-cnk-panel-light p-4 rounded-cnk-card shadow-md border">
+                <div className="bg-cnk-panel-light p-4 rounded-lg shadow-sm border">
                     <h2 className="text-lg font-bold mb-2">{t('unmatchedIncoming')}</h2>
                     <DataTable columns={invoiceColumns('incoming')} data={unmatchedInvoices.incoming} />
                 </div>
-                <div className="bg-cnk-panel-light p-4 rounded-cnk-card shadow-md border">
+                <div className="bg-cnk-panel-light p-4 rounded-lg shadow-sm border">
                     <h2 className="text-lg font-bold mb-2">{t('unmatchedOutgoing')}</h2>
                     <DataTable columns={invoiceColumns('outgoing')} data={unmatchedInvoices.outgoing} />
                 </div>

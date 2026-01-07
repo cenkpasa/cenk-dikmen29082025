@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -13,38 +12,37 @@ type ViewMode = 'day' | 'work-week' | 'week' | 'month';
 
 const Appointments = () => {
     const { t, language } = useLanguage();
-    const { appointments, customers, cancelAppointment, updateAppointment } = useData();
+    const { appointments, customers, deleteAppointment, updateAppointment } = useData();
     const { showNotification } = useNotification();
 
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<ViewMode>('month');
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-    const [isConfirmCancelOpen, setIsConfirmCancelOpen] = useState(false);
-    const [appointmentToCancel, setAppointmentToCancel] = useState<string | null>(null);
+    const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+    const [appointmentToDelete, setAppointmentToDelete] = useState<string | null>(null);
     const [modalData, setModalData] = useState<{ appointment?: Appointment | null, defaultDate?: Date }>({});
     const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
 
-    const activeAppointments = useMemo(() => appointments.filter(a => a.status !== 'cancelled'), [appointments]);
 
-    if(!activeAppointments) return <Loader fullScreen />;
+    if(!appointments) return <Loader fullScreen />;
 
     const handleOpenModal = (appointment?: Appointment | null, defaultDate?: Date) => {
         setModalData({ appointment, defaultDate });
         setIsFormModalOpen(true);
     };
     
-    const openCancelConfirm = (appointmentId: string) => {
-        setAppointmentToCancel(appointmentId);
-        setIsConfirmCancelOpen(true);
+    const openDeleteConfirm = (appointmentId: string) => {
+        setAppointmentToDelete(appointmentId);
+        setIsConfirmDeleteOpen(true);
     };
 
-    const handleCancel = () => {
-        if(appointmentToCancel) {
-            cancelAppointment(appointmentToCancel);
-            showNotification('appointmentUpdated', 'success');
+    const handleDelete = () => {
+        if(appointmentToDelete) {
+            deleteAppointment(appointmentToDelete);
+            showNotification('appointmentDeleted', 'success');
         }
-        setIsConfirmCancelOpen(false);
-        setAppointmentToCancel(null);
+        setIsConfirmDeleteOpen(false);
+        setAppointmentToDelete(null);
     };
 
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>, appId: string) => {
@@ -56,12 +54,12 @@ const Appointments = () => {
         e.preventDefault();
     };
 
-    const handleDrop = async (e: React.DragEvent<HTMLDivElement>, newDate: Date) => {
+    const handleMonthDrop = async (e: React.DragEvent<HTMLDivElement>, newDate: Date) => {
         e.preventDefault();
         const appId = e.dataTransfer.getData('text/plain');
         if (!appId) return;
 
-        const appointmentToMove = activeAppointments.find(app => app.id === appId);
+        const appointmentToMove = appointments.find(app => app.id === appId);
         if (appointmentToMove) {
             const originalStartDate = new Date(appointmentToMove.start);
             const originalEndDate = new Date(appointmentToMove.end);
@@ -81,6 +79,39 @@ const Appointments = () => {
             await updateAppointment(updatedAppointment);
             showNotification('appointmentUpdated', 'success');
         }
+        setDraggedAppId(null);
+    };
+    
+    const handleTimeGridDrop = async (e: React.DragEvent<HTMLDivElement>, newDay: Date) => {
+        e.preventDefault();
+        e.stopPropagation(); 
+        const appId = e.dataTransfer.getData('text/plain');
+        if (!appId) return;
+
+        const appToMove = appointments.find(app => app.id === appId);
+        if (!appToMove) return;
+        
+        const rect = e.currentTarget.getBoundingClientRect();
+        const totalHeight = e.currentTarget.offsetHeight; 
+        const dropY = e.clientY - rect.top;
+        const hour = (dropY / totalHeight) * 24;
+
+        const duration = new Date(appToMove.end).getTime() - new Date(appToMove.start).getTime();
+
+        const newStartDate = new Date(newDay);
+        newStartDate.setHours(Math.floor(hour), (hour % 1) * 60, 0, 0);
+
+        const newEndDate = new Date(newStartDate.getTime() + duration);
+
+        const updatedAppointment: Appointment = {
+            ...appToMove,
+            start: newStartDate.toISOString(),
+            end: newEndDate.toISOString(),
+            allDay: false, 
+        };
+
+        await updateAppointment(updatedAppointment);
+        showNotification('appointmentUpdated', 'success');
         setDraggedAppId(null);
     };
     
@@ -108,7 +139,7 @@ const Appointments = () => {
                 </div>
                  <h2 className="text-lg font-semibold text-cnk-txt-primary-light">{currentDate.toLocaleDateString(language, { year: 'numeric', month: 'long' })}</h2>
             </div>
-            <div className="flex items-center gap-1 bg-cnk-bg-light p-1 rounded-cnk-element">
+            <div className="flex items-center gap-1 bg-cnk-bg-light p-1 rounded-lg">
                 {(['day', 'work-week', 'week', 'month'] as ViewMode[]).map(v => (
                     <Button key={v} size="sm" variant={viewMode === v ? 'primary' : 'secondary'} className={viewMode === v ? '' : '!bg-transparent shadow-none'} onClick={() => setViewMode(v)}>
                         {t(v.replace('-', ''))}
@@ -120,11 +151,11 @@ const Appointments = () => {
     
     const MonthView = () => {
         const monthAppointments = useMemo(() => {
-            return activeAppointments.filter(app => {
+            return appointments.filter(app => {
                 const appDate = new Date(app.start);
                 return appDate.getMonth() === currentDate.getMonth() && appDate.getFullYear() === currentDate.getFullYear();
             });
-        }, [activeAppointments, currentDate]);
+        }, [appointments, currentDate]);
 
         const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
         const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
@@ -150,7 +181,7 @@ const Appointments = () => {
                             className="border-b border-r border-cnk-border-light p-1 overflow-y-auto" 
                             onClick={() => handleOpenModal(null, dayDate)}
                             onDragOver={handleDragOver}
-                            onDrop={(e) => handleDrop(e, dayDate)}
+                            onDrop={(e) => handleMonthDrop(e, dayDate)}
                         >
                             <p className={`text-sm text-right ${isToday ? 'font-bold text-cnk-accent-primary' : 'text-cnk-txt-muted-light'}`}>{d}</p>
                             <div className="space-y-1">
@@ -192,7 +223,7 @@ const Appointments = () => {
             return day;
         });
         
-        const dayAppointments = (day: Date) => activeAppointments.filter(app => new Date(app.start).toDateString() === day.toDateString());
+        const dayAppointments = (day: Date) => appointments.filter(app => new Date(app.start).toDateString() === day.toDateString());
 
         return (
             <div className="flex-grow overflow-auto">
@@ -225,14 +256,20 @@ const Appointments = () => {
                             </div>
                             <div className="col-start-2 row-start-1 grid relative" style={{ gridTemplateColumns: `repeat(${daysToShow}, minmax(0, 1fr))` }}>
                                 {Array.from({ length: 24 }, (_, i) => <div key={i} className="h-16 border-b border-cnk-border-light pointer-events-none" style={{ gridColumn: `span ${daysToShow} / span ${daysToShow}` }}></div>)}
-                                {days.map((day, i) => <div key={i} className="row-span-full h-full" style={{ gridColumnStart: i+1, gridRowStart: 1, gridRowEnd: 25 }} onClick={(e) => {
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    const hour = Math.floor((e.clientY - rect.top) / 64 * 2) / 2;
-                                    const newDate = new Date(day);
-                                    newDate.setHours(Math.floor(hour), (hour % 1) * 60, 0, 0);
-                                    handleOpenModal(null, newDate);
-                                }}></div>)}
-                                {activeAppointments.filter(a => !a.allDay).map(app => {
+                                {days.map((day, i) => <div 
+                                    key={i} 
+                                    className="row-span-full h-full" 
+                                    style={{ gridColumnStart: i+1, gridRowStart: 1, gridRowEnd: 25 }} 
+                                    onDragOver={handleDragOver} 
+                                    onDrop={(e) => handleTimeGridDrop(e, day)}
+                                    onClick={(e) => {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        const hour = Math.floor((e.clientY - rect.top) / 64 * 2) / 2;
+                                        const newDate = new Date(day);
+                                        newDate.setHours(Math.floor(hour), (hour % 1) * 60, 0, 0);
+                                        handleOpenModal(null, newDate);
+                                    }}></div>)}
+                                {appointments.filter(a => !a.allDay).map(app => {
                                     const start = new Date(app.start);
                                     const end = new Date(app.end);
                                     const dayIndex = days.findIndex(d => d.toDateString() === start.toDateString());
@@ -244,9 +281,11 @@ const Appointments = () => {
                                     
                                     return (
                                         <div key={app.id} 
-                                            className="absolute p-2 rounded-cnk-element bg-cnk-accent-primary/80 text-white overflow-hidden cursor-pointer hover:bg-cnk-accent-primary-hover"
+                                            className="absolute p-2 rounded-lg bg-cnk-accent-primary/80 text-white overflow-hidden cursor-pointer hover:bg-cnk-accent-hover"
                                             style={{ top: `${top}rem`, left: `${dayIndex * (100/daysToShow)}%`, width: `${100/daysToShow}%`, height: `${height}rem`, minHeight: '2rem' }}
                                             onClick={() => handleOpenModal(app)}
+                                            draggable={true}
+                                            onDragStart={(e) => handleDragStart(e, app.id)}
                                             >
                                              <p className="font-bold text-xs truncate">{app.title}</p>
                                              <p className="text-xs truncate">{customers.find(c => c.id === app.customerId)?.name}</p>
@@ -263,7 +302,7 @@ const Appointments = () => {
     
     return (
         <div className="flex flex-col h-full">
-            <div className="flex flex-col flex-grow border border-cnk-border-light rounded-cnk-card overflow-hidden shadow-md bg-cnk-panel-light">
+            <div className="flex flex-col flex-grow border border-cnk-border-light rounded-xl overflow-hidden shadow-lg bg-cnk-panel-light">
                 <Header />
                 <CalendarView />
             </div>
@@ -274,17 +313,17 @@ const Appointments = () => {
                 defaultDate={modalData.defaultDate}
             />
              <Modal
-                isOpen={isConfirmCancelOpen}
-                onClose={() => setIsConfirmCancelOpen(false)}
-                title="Randevuyu İptal Et"
+                isOpen={isConfirmDeleteOpen}
+                onClose={() => setIsConfirmDeleteOpen(false)}
+                title={t('deleteAppointmentConfirm')}
                 footer={
                     <>
-                        <Button variant="secondary" onClick={() => setIsConfirmCancelOpen(false)}>{t('cancel')}</Button>
-                        <Button variant="danger" onClick={handleCancel}>İptal Et</Button>
+                        <Button variant="secondary" onClick={() => setIsConfirmDeleteOpen(false)}>{t('cancel')}</Button>
+                        <Button variant="danger" onClick={handleDelete}>{t('delete')}</Button>
                     </>
                 }
             >
-                <p>Bu randevuyu iptal etmek istediğinizden emin misiniz? Bu işlem geri alınamaz.</p>
+                <p>{t('deleteConfirmation')}</p>
             </Modal>
         </div>
     );

@@ -1,18 +1,17 @@
-
 import React, { useState, useMemo } from 'react';
-import { Customer, Invoice, Reconciliation } from '@/types';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useData } from '@/contexts/DataContext';
-import { analyzeOpportunities, suggestNextStep, analyzeSentiment } from '@/services/aiService';
-import { useNotification } from '@/contexts/NotificationContext';
-import Modal from '@/components/common/Modal';
-import Button from '@/components/common/Button';
-import ActivityTimeline from '@/components/customers/ActivityTimeline';
-import { ViewState } from '@/App';
-import Loader from '@/components/common/Loader';
-import { useErp } from '@/contexts/ErpContext';
-import { useReconciliation } from '@/contexts/ReconciliationContext';
-import DataTable from '@/components/common/DataTable';
+import { Customer, Invoice, Reconciliation } from '../../types';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { useData } from '../../contexts/DataContext';
+import { analyzeOpportunities, suggestNextStep, analyzeSentiment } from '../../services/aiService';
+import { useNotification } from '../../contexts/NotificationContext';
+import Modal from '../common/Modal';
+import Button from '../common/Button';
+import ActivityTimeline from './ActivityTimeline';
+import { ViewState } from '../../App';
+import Loader from '../common/Loader';
+import { useErp } from '../../contexts/ErpContext';
+import { useReconciliation } from '../../contexts/ReconciliationContext';
+import DataTable from '../common/DataTable';
 
 
 interface CustomerDetailModalProps {

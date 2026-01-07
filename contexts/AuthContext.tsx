@@ -1,10 +1,10 @@
-
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { User } from '@/types';
-import { useNotification } from '@/contexts/NotificationContext';
-import { db } from '@/services/dbService';
+import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
+import { User } from '../types';
+import { useNotification } from './NotificationContext';
+import { db } from '../services/dbService';
+import { api } from '../services/apiService';
 import { v4 as uuidv4 } from 'uuid';
-import { auditLogService } from '@/services/auditLogService';
+import { auditLogService } from '../services/auditLogService';
 
 interface AuthContextType {
     currentUser: User | null;
@@ -15,6 +15,7 @@ interface AuthContextType {
     users: User[];
     updateUser: (user: User) => Promise<{ success: boolean, messageKey: string }>;
     addUser: (user: Omit<User, 'id'>) => Promise<{ success: boolean, messageKey: string }>;
+    deleteUser: (userId: string) => Promise<void>;
     changePassword: (userId: string, oldPass: string, newPass: string) => Promise<{ success: boolean, messageKey: string }>;
     resetPassword: (email: string, newPass: string, code: string) => Promise<{ success: boolean, messageKey: string }>;
 }
@@ -22,7 +23,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
-    children: ReactNode;
+    // Fix: Made children optional to prevent 'Property children is missing' errors in parent components
+    children?: ReactNode;
 }
 
 const storage = (keepSignedIn: boolean): Storage => {
@@ -67,23 +69,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
 
     const login = async (username: string, password: string, keepSignedIn: boolean): Promise<{ success: boolean; messageKey: string }> => {
-        // Authentication logic now resides here for clarity. It validates against the 
-        // local database, which is the secure source of truth.
+        const { success, messageKey } = await api.login(username, password);
+        if (!success) {
+            return { success, messageKey };
+        }
+
         const user = await db.users.where('username').equalsIgnoreCase(username).first();
-
-        if (!user) {
-            return { success: false, messageKey: 'userNotFound' };
-        }
+        if (!user) return { success: false, messageKey: 'userNotFound' };
         
-        // This check is simplified. A real backend would use bcrypt.compare() or similar.
-        if (user.password !== password) {
-            return { success: false, messageKey: 'invalidPassword' };
-        }
-
-        // Passwords match, proceed with login.
         const { password: _, ...userToStore } = user;
         const storageToUse = storage(keepSignedIn);
-        
         // Clear the other storage to prevent conflicts
         if (keepSignedIn) {
             sessionStorage.removeItem('currentUser');
@@ -91,10 +86,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             localStorage.removeItem('currentUser');
         }
         storageToUse.setItem('currentUser', JSON.stringify(userToStore));
-        
         setCurrentUser(user);
         await auditLogService.logAction(user, 'LOGIN_SUCCESS', 'user', user.id);
-        
         return { success: true, messageKey: 'loggedInWelcome' };
     };
 
@@ -183,6 +176,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
          return { success: true, messageKey: 'userAddedSuccess' };
     };
     
+    const deleteUser = async (userId: string) => {
+        if (!currentUser) return;
+        if (currentUser?.id === userId) {
+            showNotification('cannotDeleteSelf', 'error');
+            return;
+        }
+        const userToDelete = users.find(u => u.id === userId);
+        await db.users.delete(userId);
+        await refreshUsers();
+        await auditLogService.logAction(currentUser, 'DELETE_USER', 'user', userId, `User ${userToDelete?.name || userId} deleted.`);
+        showNotification('userDeleted', 'success');
+    };
+    
     const changePassword = async (userId: string, oldPass: string, newPass: string): Promise<{success: boolean, messageKey: string}> => {
         const user = await db.users.get(userId);
         if (!user || !user.password) return { success: false, messageKey: 'userNotFound' };
@@ -214,7 +220,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
 
     return (
-        <AuthContext.Provider value={{ currentUser, login, register, logout, loading, users, updateUser, addUser, changePassword, resetPassword }}>
+        <AuthContext.Provider value={{ currentUser, login, register, logout, loading, users, updateUser, addUser, deleteUser, changePassword, resetPassword }}>
             {children}
         </AuthContext.Provider>
     );

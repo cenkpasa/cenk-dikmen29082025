@@ -1,1 +1,0 @@
-full contents of src/components/common/ProfilePictureEditor.tsx

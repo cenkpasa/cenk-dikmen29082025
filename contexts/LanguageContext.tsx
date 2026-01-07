@@ -1,6 +1,5 @@
-
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
-import { MESSAGES } from '@/constants';
+import { MESSAGES } from '../constants';
 
 type Language = 'tr' | 'en';
 
@@ -13,7 +12,8 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 interface LanguageProviderProps {
-    children: ReactNode;
+    // Fix: Made children optional to prevent 'Property children is missing' errors in parent components
+    children?: ReactNode;
 }
 
 export const LanguageProvider = ({ children }: LanguageProviderProps) => {

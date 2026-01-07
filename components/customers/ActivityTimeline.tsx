@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
-import { useData } from '@/contexts/DataContext';
-import { Appointment, Offer, Interview } from '@/types';
-import { formatDate, formatCurrency } from '@/utils/formatting';
+import { useData } from '../../contexts/DataContext';
+import { Appointment, Offer, Interview } from '../../types';
 
 type TimelineItem = (Appointment | Offer | Interview) & { type: 'appointment' | 'offer' | 'interview' };
 
@@ -10,11 +9,11 @@ interface ActivityTimelineProps {
 }
 
 const getItemDate = (item: TimelineItem): Date => {
-    switch (item.type) {
+    switch(item.type) {
         case 'appointment': return new Date((item as Appointment).start);
         case 'interview': return new Date((item as Interview).formTarihi);
         case 'offer': return new Date((item as Offer).createdAt);
-        default: return new Date();
+        default: return new Date(); // Fallback
     }
 };
 
@@ -29,69 +28,69 @@ const ActivityTimeline = ({ customerId }: ActivityTimelineProps) => {
         interviews.filter(i => i.customerId === customerId).forEach(i => items.push({ ...i, type: 'interview' }));
         
         return items.sort((a, b) => getItemDate(b).getTime() - getItemDate(a).getTime());
+
     }, [customerId, appointments, offers, interviews]);
-    
-    const getIconInfo = (type: TimelineItem['type']) => {
+
+    const getIconForType = (type: TimelineItem['type']) => {
         const iconMap = {
-            appointment: { icon: 'fa-calendar-check', color: 'bg-cnk-accent-green', text: 'text-cnk-accent-green' },
-            offer: { icon: 'fa-file-invoice-dollar', color: 'bg-cnk-accent-primary', text: 'text-cnk-accent-primary' },
-            interview: { icon: 'fa-comments', color: 'bg-cnk-accent-yellow', text: 'text-cnk-accent-yellow' },
+            appointment: { icon: 'fa-calendar-check', bg: 'bg-green-100', text: 'text-green-600' },
+            offer: { icon: 'fa-file-invoice-dollar', bg: 'bg-purple-100', text: 'text-purple-600' },
+            interview: { icon: 'fa-file-signature', bg: 'bg-orange-100', text: 'text-orange-600' },
         };
         return iconMap[type];
     };
     
     const renderItemContent = (item: TimelineItem) => {
-        const date = getItemDate(item);
-        const iconInfo = getIconInfo(item.type);
-        
-        let title = '';
-        let details: React.ReactNode = null;
-        
         switch (item.type) {
             case 'appointment':
                 const app = item as Appointment;
-                title = `Randevu: ${app.title}`;
-                details = <p className="text-sm text-cnk-txt-muted-light">{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>;
-                break;
+                return (
+                    <>
+                        <p className="font-semibold">{app.title}</p>
+                        <p className="text-xs text-cnk-txt-secondary-light">{new Date(app.start).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
+                    </>
+                );
             case 'offer':
                 const offer = item as Offer;
-                title = `Teklif Gönderildi: #${offer.teklifNo}`;
-                details = <p className="text-sm font-semibold">{formatCurrency(offer.genelToplam, offer.currency)}</p>;
-                break;
+                return (
+                    <>
+                        <p className="font-semibold">Teklif Gönderildi - {offer.teklifNo}</p>
+                        <p className="text-sm">Toplam: {offer.genelToplam.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</p>
+                    </>
+                );
             case 'interview':
                 const interview = item as Interview;
-                title = 'Görüşme Yapıldı';
-                details = <p className="text-sm text-cnk-txt-muted-light">Yapan: {interview.gorusmeyiYapan}</p>;
-                break;
+                return (
+                    <>
+                        <p className="font-semibold">Görüşme Yapıldı</p>
+                        <p className="text-xs text-cnk-txt-secondary-light">Görüşmeyi Yapan: {interview.gorusmeyiYapan}</p>
+                    </>
+                );
         }
-
-        return (
-            <div className="ml-10">
-                <div className={`absolute w-10 h-10 ${iconInfo.color} rounded-full -left-5 border-4 border-white flex items-center justify-center`}>
-                    <i className={`fas ${iconInfo.icon} text-white`}></i>
-                </div>
-                <div className="p-4 bg-cnk-bg-light rounded-lg border border-cnk-border-light">
-                    <div className="flex justify-between items-center">
-                        <h3 className={`font-semibold ${iconInfo.text}`}>{title}</h3>
-                        <time className="text-xs font-medium text-cnk-txt-muted-light">{formatDate(date.toISOString())}</time>
-                    </div>
-                    {details}
-                </div>
-            </div>
-        );
     };
+
 
     if (timelineItems.length === 0) {
         return <div className="text-center p-4 text-sm text-cnk-txt-muted-light bg-cnk-bg-light rounded-md">Bu müşteri için henüz bir etkinlik kaydedilmemiş.</div>;
     }
 
     return (
-        <div className="relative border-l-2 border-cnk-accent-primary/20">
-            {timelineItems.map((item, index) => (
-                <div key={`${item.type}-${item.id}-${index}`} className="mb-8 relative">
-                    {renderItemContent(item)}
-                </div>
-            ))}
+        <div className="border-l-2 border-cnk-border-light pl-6 space-y-6 max-h-96 overflow-y-auto pr-2">
+            {timelineItems.map((item, index) => {
+                const iconInfo = getIconForType(item.type);
+                const date = getItemDate(item);
+                return (
+                    <div key={`${item.type}-${item.id}-${index}`} className="relative">
+                        <div className={`absolute -left-[34px] top-1 w-8 h-8 rounded-full ${iconInfo.bg} ${iconInfo.text} flex items-center justify-center`}>
+                            <i className={`fas ${iconInfo.icon}`}></i>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-cnk-border-light">
+                            {renderItemContent(item)}
+                             <p className="text-xs text-cnk-txt-muted-light mt-1">{date.toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                )
+            })}
         </div>
     );
 };

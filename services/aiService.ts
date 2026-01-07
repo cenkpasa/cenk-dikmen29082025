@@ -1,6 +1,5 @@
-
-import { Offer, Customer } from '@/types';
-import { api } from '@/services/apiService';
+import { Offer, Customer, DFMAnalysisItem, QuoteEstimation } from '../types';
+import { api } from './apiService';
 
 const callAI = async (prompt: string): Promise<{ success: boolean; text: string }> => {
     try {
@@ -50,7 +49,7 @@ export const analyzeOpportunities = (customer: Customer) => {
 
 export const generateFollowUpEmail = async (offer: Offer, customer: Customer | undefined): Promise<{ success: boolean; text: string }> => {
     const offerDetails = offer.items.map(item => `- ${item.miktar} ${item.birim} ${item.cins}`).join('\n');
-    const prompt = `Bir CRM sistemi için yapay zeka asistanıyım. Aşağıdaki bilgilere göre, müşteriye gönderilecek profesyonel bir takip e-postası taslağı oluştur. E-posta sadece metin olarak oluşturulsun, imza veya "Konu:" başlığı ekleme.\n\nMüşteri: ${customer?.name}, Yetkili: ${offer.firma.yetkili}\nTeklif No: ${offer.teklifNo}, Toplam: ${offer.genelToplam} TL\nÜrünler: ${offerDetails}`;
+    const prompt = `Bir CRM sistemi için yapay zeka asistanıyım. Aşağıdaki bilgilere göre, müşteriye gönderilecek profesyonel ve nazik bir takip e-postası taslağı oluştur. E-posta, teklifi hatırlatmalı ve bir sonraki adımlar hakkında soru sormalıdır. Cevabını şu formatta ver: ilk satırda "Konu: [E-posta Konusu]" ve ardından e-posta metni. İmza ekleme.\n\nMüşteri: ${customer?.name}, Yetkili: ${offer.firma.yetkili}\nTeklif No: ${offer.teklifNo}, Toplam: ${offer.genelToplam.toLocaleString('tr-TR')} TL\nÜrünler:\n${offerDetails}`;
     return callAI(prompt);
 };
 
@@ -87,4 +86,89 @@ export const generateReconciliationEmail = (customer: Customer, type: string, pe
 export const analyzeDisagreement = (response: string) => {
     const prompt = `Bir müşteri mutabakatı reddetti ve şu açıklamayı yaptı: "${response}". Bu açıklamayı analiz et ve sorunun olası nedenlerini (örneğin, eksik fatura, tarih uyuşmazlığı, farklı kayıtlar) ve çözüm için atılması gereken adımları özetle.`;
     return callAI(prompt);
+};
+
+export const analyze3DModelForManufacturability = async (modelData: string): Promise<{ success: boolean; dfmAnalysis: DFMAnalysisItem[]; quoteEstimation: QuoteEstimation; }> => {
+    const prompt = `You are an expert AI assistant for a CNC machining company called CNK. Your task is to analyze a customer's uploaded 3D model data for manufacturability (DFM) and then provide a detailed cost estimation and quote.
+
+    **INPUT:**
+    A string representing the 3D model data (e.g., contents of a STEP/IGES file). For this simulation, the input is: "${modelData}"
+
+    **ANALYSIS & OUTPUT:**
+    Your response must be a single, valid JSON object with no explanations or extra text outside of the JSON structure. The JSON object must have two main keys: "dfmAnalysis" and "quoteEstimation".
+
+    1.  **dfmAnalysis Key:**
+        *   This should be an array of objects.
+        *   Each object represents a potential manufacturing issue found in the model.
+        *   Each object must have three string properties:
+            *   "issueType": Can be one of "critical", "warning", or "info".
+            *   "description": A clear, concise explanation of the problem in Turkish.
+            *   "suggestion": A practical, actionable recommendation to fix the problem, also in Turkish.
+        *   Identify at least one "critical" and one "warning" issue based on common CNC machining problems (e.g., sharp internal corners, thin walls, non-standard hole sizes, difficult-to-reach features).
+
+    2.  **quoteEstimation Key:**
+        *   This should be an object representing the cost breakdown and final quote.
+        *   It must have the following properties:
+            *   "materialCost": A number representing the raw material cost.
+            *   "machiningTimeHours": A number representing the estimated hours for CNC machining.
+            *   "machiningCost": A number (machiningTimeHours * hourly_rate). Assume an hourly rate of 150.
+            *   "setupCost": A number for machine setup.
+            *   "totalEstimatedCost": A number (sum of the above costs).
+            *   "suggestedQuotePrice": A number (totalEstimatedCost * 1.3 for a 30% markup).
+            *   "lineItems": An array containing a single object for the final quote. This object must have "description" (string), "quantity" (number, usually 1), "unitPrice" (number, same as suggestedQuotePrice), and "totalPrice" (number, same as suggestedQuotePrice).
+
+    **EXAMPLE OF DESIRED JSON OUTPUT:**
+    {
+      "dfmAnalysis": [
+        {
+          "issueType": "critical",
+          "description": "Bu iç köşe radyüsü (1mm) standart bir 3mm parmak frezenin giremeyeceği kadar dar.",
+          "suggestion": "Verimlilik için radyüsü 1.5mm'ye çıkarın."
+        },
+        {
+          "issueType": "warning",
+          "description": "Bu duvar kalınlığı (0.5mm) işleme sırasında titreşim yapabilir ve kırılabilir.",
+          "suggestion": "Kalınlığı 1mm'ye çıkarmanız veya buraya bir destek nervürü eklemeniz önerilir."
+        }
+      ],
+      "quoteEstimation": {
+        "materialCost": 15.75,
+        "machiningTimeHours": 1.25,
+        "machiningCost": 187.50,
+        "setupCost": 50.00,
+        "totalEstimatedCost": 253.25,
+        "suggestedQuotePrice": 329.23,
+        "lineItems": [
+          {
+            "description": "Parça XYZ Üretimi (Malzeme: Alüminyum 6061)",
+            "quantity": 1,
+            "unitPrice": 329.23,
+            "totalPrice": 329.23
+          }
+        ]
+      }
+    }`;
+    
+    // In a real application, you would call the AI with the prompt.
+    // For this simulation, we return a mock JSON object that matches the required structure.
+    await new Promise(res => setTimeout(res, 2500)); // Simulate AI processing time
+    const mockResponse: { dfmAnalysis: DFMAnalysisItem[]; quoteEstimation: QuoteEstimation; } = {
+        dfmAnalysis: [
+            { issueType: 'critical', description: 'İç köşe radyüsü (1mm) standart bir 3mm parmak frezenin giremeyeceği kadar dar.', suggestion: 'Verimlilik için radyüsü 1.5mm\'ye çıkarın.' },
+            { issueType: 'warning', description: 'Duvar kalınlığı (0.5mm) işleme sırasında titreşim yapabilir ve kırılabilir.', suggestion: 'Kalınlığı 1mm\'ye çıkarmanız veya buraya bir destek nervürü eklemeniz önerilir.' },
+            { issueType: 'info', description: 'Bu delik, standart olmayan bir matkap çapı gerektiriyor (8.1mm).', suggestion: 'Maliyeti düşürmek için standart 8.0mm veya 8.5mm kullanmayı düşünün.' },
+        ],
+        quoteEstimation: {
+            materialCost: 22.50,
+            machiningTimeHours: 1.5,
+            machiningCost: 225.00,
+            setupCost: 75.00,
+            totalEstimatedCost: 322.50,
+            suggestedQuotePrice: 419.25,
+            lineItems: [
+                { description: 'Model Dosyası Üretimi (Malzeme: Paslanmaz Çelik 304)', quantity: 1, unitPrice: 419.25, totalPrice: 419.25 }
+            ]
+        }
+    };
+    return { success: true, ...mockResponse };
 };

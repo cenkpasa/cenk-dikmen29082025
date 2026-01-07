@@ -1,4 +1,3 @@
-
 // Type definitions for Web Speech API to fix TypeScript errors
 interface SpeechRecognitionEvent extends Event {
     readonly resultIndex: number;

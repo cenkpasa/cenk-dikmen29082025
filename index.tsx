@@ -1,60 +1,46 @@
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from '@/App';
-import { LanguageProvider } from '@/contexts/LanguageContext';
-import { ThemeProvider } from '@/contexts/ThemeContext';
-import { NotificationProvider } from '@/contexts/NotificationContext';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { DataProvider } from '@/contexts/DataContext';
-import { ErpProvider } from '@/contexts/ErpContext';
-import { PersonnelProvider } from '@/contexts/PersonnelContext';
-import { SettingsProvider } from '@/contexts/SettingsContext';
-import { ReconciliationProvider } from '@/contexts/ReconciliationContext';
-import { NotificationCenterProvider } from '@/contexts/NotificationCenterContext';
-import ErrorBoundary from '@/components/common/ErrorBoundary';
-import { syncService } from '@/services/syncService';
+import './index.css';
+import App from './App';
+import { LanguageProvider } from './contexts/LanguageContext';
+import { NotificationProvider } from './contexts/NotificationContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { DataProvider } from './contexts/DataContext';
+import { SettingsProvider } from './contexts/SettingsContext';
+import { NotificationCenterProvider } from './contexts/NotificationCenterContext';
+import { ErpProvider } from './contexts/ErpContext';
+import { EmailProvider } from './contexts/EmailContext';
+import { PersonnelProvider } from './contexts/PersonnelContext';
+import { ReconciliationProvider } from './contexts/ReconciliationContext';
 
-// Çevrimdışı çalışırken yapılan değişiklikleri senkronize etmek için periyodik kontrolleri başlat.
-window.addEventListener('online', () => syncService.processSyncQueue());
-setInterval(() => syncService.processSyncQueue(), 5 * 60 * 1000); // Her 5 dakikada bir
-syncService.processSyncQueue();
-
-const AppProviders = ({ children }: { children: React.ReactNode }) => (
-  <ThemeProvider>
+const AppProviders = () => (
     <LanguageProvider>
       <NotificationProvider>
         <AuthProvider>
-          <DataProvider>
-            <ErpProvider>
-              <PersonnelProvider>
-                <SettingsProvider>
-                  <ReconciliationProvider>
-                    <NotificationCenterProvider>
-                      {children}
-                    </NotificationCenterProvider>
-                  </ReconciliationProvider>
-                </SettingsProvider>
-              </PersonnelProvider>
-            </ErpProvider>
-          </DataProvider>
+          <SettingsProvider>
+            <NotificationCenterProvider>
+              <DataProvider>
+                  <ErpProvider>
+                    <EmailProvider>
+                      <PersonnelProvider>
+                        <ReconciliationProvider>
+                          <App />
+                        </ReconciliationProvider>
+                      </PersonnelProvider>
+                    </EmailProvider>
+                  </ErpProvider>
+              </DataProvider>
+            </NotificationCenterProvider>
+          </SettingsProvider>
         </AuthProvider>
       </NotificationProvider>
     </LanguageProvider>
-  </ThemeProvider>
 );
 
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
-}
-
-const root = ReactDOM.createRoot(rootElement);
+const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <AppProviders>
-        <App />
-      </AppProviders>
-    </ErrorBoundary>
+    <AppProviders />
   </React.StrictMode>
 );

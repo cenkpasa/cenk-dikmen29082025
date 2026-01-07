@@ -16,7 +16,7 @@ interface ReconciliationContextType {
 
 const ReconciliationContext = createContext<ReconciliationContextType | undefined>(undefined);
 
-export const ReconciliationProvider = ({ children }: { children: ReactNode }) => {
+export const ReconciliationProvider = ({ children }: { children?: ReactNode }) => {
     const { currentUser } = useAuth();
     const reconciliations = useLiveQuery(() => db.reconciliations.orderBy('createdAt').reverse().toArray(), []) || [];
 

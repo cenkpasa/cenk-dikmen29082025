@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, ReactNode } from 'react';
 import { useData } from '../../contexts/DataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -10,6 +9,7 @@ import { analyzeOpportunities, suggestNextStep, analyzeSentiment } from '../../s
 import BusinessCardScanner from '../customers/BusinessCardScanner';
 import Input from '../common/Input';
 import Loader from '../common/Loader';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface CustomerFormProps {
     isOpen: boolean;
@@ -94,6 +94,7 @@ const CustomerForm = ({ isOpen, onClose, customer }: CustomerFormProps) => {
     const { addCustomer, updateCustomer } = useData();
     const { t } = useLanguage();
     const { showNotification } = useNotification();
+    const { currentUser } = useAuth();
     const [activeTab, setActiveTab] = useState('generalInfo');
     const [isScannerOpen, setIsScannerOpen] = useState(false);
 
@@ -102,7 +103,8 @@ const CustomerForm = ({ isOpen, onClose, customer }: CustomerFormProps) => {
         country: '', city: '', district: '', postalCode: '', group: '', subgroup1: '', subgroup2: '',
         phone1: '', phone2: '', homePhone: '', mobilePhone1: '', fax: '', taxOffice: '',
         taxNumber: '', nationalId: '', specialCode1: '', specialCode2: '', specialCode3: '',
-        registrationDate: new Date().toISOString().slice(0, 10), specialDate: '', webcamImage: '', notes: ''
+        registrationDate: new Date().toISOString().slice(0, 10), specialDate: '', webcamImage: '', notes: '',
+        assignedToId: currentUser?.id || ''
     });
 
     const [formData, setFormData] = useState<CustomerFormData>(getInitialState());

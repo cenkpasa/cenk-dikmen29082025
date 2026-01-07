@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import Modal from '@/components/common/Modal';
-import Button from '@/components/common/Button';
-import Loader from '@/components/common/Loader';
-import { useNotification } from '@/contexts/NotificationContext';
-import { parseBusinessCard } from '@/services/aiService';
-import { useLanguage } from '@/contexts/LanguageContext';
+import Modal from '../common/Modal';
+import Button from '../common/Button';
+import Loader from '../common/Loader';
+import { useNotification } from '../../contexts/NotificationContext';
+import { parseBusinessCard } from '../../services/aiService';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface BusinessCardScannerProps {
     isOpen: boolean;
@@ -98,7 +98,7 @@ const BusinessCardScanner = ({ isOpen, onClose, onScan }: BusinessCardScannerPro
                 <div className="w-full aspect-video bg-black rounded-lg overflow-hidden relative">
                     <video ref={videoRef} autoPlay playsInline className={`w-full h-full object-contain ${capturedImage ? 'hidden' : 'block'}`} />
                     <canvas ref={canvasRef} className="hidden" />
-                    {capturedImage && <img src={capturedImage} alt={t('capturedBusinessCard')} className="w-full h-full object-contain" />}
+                    {capturedImage && <img src={capturedImage} alt="Captured" className="w-full h-full object-contain" />}
                     {isProcessing && (
                          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
                             <Loader />

@@ -19,7 +19,7 @@ const DEFAULT_AI_SETTINGS: Omit<AISettings, 'userId'> = {
     atRiskDays: 30,
 };
 
-export const SettingsProvider = ({ children }: { children: ReactNode }) => {
+export const SettingsProvider = ({ children }: { children?: ReactNode }) => {
     const { currentUser } = useAuth();
     const [settings, setSettings] = useState<AISettings | null>(null);
     const [loadingSettings, setLoadingSettings] = useState(true);

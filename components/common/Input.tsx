@@ -1,16 +1,14 @@
 import React, { InputHTMLAttributes } from 'react';
 
-// FIX: Changed from interface to type and used an intersection with InputHTMLAttributes.
-// This is a more robust way to merge custom props with all standard HTML input attributes,
-// resolving errors where props like `type`, `id`, and `value` were not recognized.
-export type InputProps = {
+// Fix: Explicitly extending standard props to ensure they are recognized in consumers
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     label?: string;
     icon?: string;
     containerClassName?: string;
     variant?: 'default' | 'dark' | 'transparent';
-} & InputHTMLAttributes<HTMLInputElement>;
+}
 
-const Input = ({ label, icon, id, containerClassName = '', variant = 'default', ...props }: InputProps) => {
+const Input: React.FC<InputProps> = ({ label, icon, id, containerClassName = '', variant = 'default', ...props }) => {
     
     const variantClasses = {
         default: "border-cnk-border-light bg-cnk-panel-light text-cnk-txt-primary-light focus:border-cnk-accent-primary focus:ring-cnk-accent-primary/50",
@@ -28,7 +26,7 @@ const Input = ({ label, icon, id, containerClassName = '', variant = 'default', 
             )}
             <input
                 id={id}
-                className={`w-full rounded-cnk-element border shadow-sm focus:outline-none focus:ring-2 ${variantClasses[variant]}`}
+                className={`w-full rounded-lg border shadow-sm transition duration-150 ease-in-out focus:outline-none focus:ring-2 ${variantClasses[variant]}`}
                 {...props}
             />
         </div>

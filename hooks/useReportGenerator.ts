@@ -1,15 +1,9 @@
 import { useMemo } from 'react';
-import { useData } from '@/contexts/DataContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { useErp } from '@/contexts/ErpContext';
-import { User, Invoice, Interview, Customer, Offer, ReportType } from '@/types';
-import { useLanguage } from '@/contexts/LanguageContext';
-
-export interface ReportFilters {
-    reportType: ReportType;
-    dateRange: { start: string, end: string };
-    userId?: string;
-}
+import { useData } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useErp } from '../contexts/ErpContext';
+import { User, Invoice, Interview, Customer, Offer, ReportType, ReportFilters } from '../types';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
     'Araç Kiralama': ['kiralama', 'araç'],
@@ -317,7 +311,7 @@ export const useReportGenerator = (filters: ReportFilters) => {
                     summary: {
                         'offerSuccessRate': `${successRate.toFixed(1)}%`,
                         'avgConversionTime': `${avgConversionTime.toFixed(1)} gün`,
-                        'avgSuccessfulOfferAmount': `${avgSuccessfulAmount.toLocaleString('tr-TR')} TL`,
+                        'avgSuccessfulAmount': `${avgSuccessfulAmount.toLocaleString('tr-TR')} TL`,
                     },
                     chartData: null
                 };

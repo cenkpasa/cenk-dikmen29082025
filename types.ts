@@ -1,18 +1,20 @@
-export type UserRole = 'admin' | 'muhasebe' | 'saha';
+
+// ... existing imports ...
+
+export type UserRole = 'admin' | 'saha' | 'muhasebe';
 
 export interface User {
-    id:string;
-    username:string; // This is email
-    password?:string;
+    id: string;
+    username: string;
+    password?: string;
     role: UserRole;
-    name:string;
-    jobTitle?:string;
-    avatar?:string;
-    // FIX: Added missing personnel fields to the User type
+    name: string;
+    jobTitle?: string;
+    avatar?: string;
     tcNo?: string;
     phone?: string;
     startDate?: string;
-    employmentStatus?: 'Aktif' | 'Pasif';
+    employmentStatus?: string;
     bloodType?: string;
     licensePlate?: string;
     gender?: 'male' | 'female' | 'other';
@@ -20,82 +22,28 @@ export interface User {
     educationLevel?: string;
     address?: string;
     annualLeaveDays?: number;
-    workType?: 'full-time' | 'part-time';
+    workType?: string;
     vehicleModel?: string;
     vehicleInitialKm?: number;
     salesTarget?: number;
+    payrollHistory?: PayrollEntry[];
 }
 
-export type Page = 'dashboard' | 'projects' | 'tech-stack' | 'contact' | 'customers' | 'email' | 'appointments' | 'gorusme-formu' | 'teklif-yaz' | 'personnel' | 'hesaplama-araclari' | 'profile' | 'yapay-zeka' | 'konum-takip' | 'erp-entegrasyonu' | 'ai-ayarlari' | 'raporlar' | 'email-taslaklari' | 'mutabakat' | 'audit-log' | 'sales-pipeline';
-
-
-export interface Project {
-  id: number;
-  title: string;
-  description: string;
-  imageUrl: string;
-  tags: string[];
-  liveUrl?: string;
-  repoUrl?: string;
-}
-
-export interface Technology {
-  name: string;
-  icon: string; // e.g., 'fab fa-react'
-  color: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  sender: 'user' | 'ai';
-  text: string;
-}
-
-// FIX: Added all missing type definitions for the application
-
-export type OfferStatus = 'draft' | 'sent' | 'negotiation' | 'won' | 'lost';
-
-export interface OfferItem {
-    id: string;
-    cins: string;
-    miktar: number;
-    birim: string;
-    fiyat: number;
-    tutar: number;
-    teslimSuresi: string;
-}
-
-export interface Offer {
-    id: string;
-    teklifNo: string;
-    customerId: string;
-    createdAt: string;
-    currency: 'TRY' | 'USD' | 'EUR';
-    firma: {
-        yetkili: string;
-        telefon: string;
-        eposta: string;
-        vade: string;
-        teklifTarihi: string;
-    };
-    teklifVeren: {
-        yetkili: string;
-        telefon: string;
-        eposta: string;
-    };
-    items: OfferItem[];
-    notlar: string;
-    toplam: number;
-    kdv: number;
-    genelToplam: number;
-    status: OfferStatus;
-    statusReason?: string;
-    aiFollowUpEmail?: string;
+export interface PayrollEntry {
+    month: string;
+    grossSalary: number;
+    netSalary: number;
+    sgkWorker: number;
+    unemploymentWorker: number;
+    incomeTax: number;
+    stampTax: number;
+    sgkEmployer: number;
+    unemploymentEmployer: number;
+    totalEmployerCost: number;
 }
 
 export interface Customer {
     id: string;
-    createdAt: string;
     name: string;
     email?: string;
     status: 'active' | 'passive';
@@ -120,11 +68,14 @@ export interface Customer {
     specialCode1?: string;
     specialCode2?: string;
     specialCode3?: string;
-    registrationDate?: string;
+    registrationDate: string;
     specialDate?: string;
     webcamImage?: string;
     notes?: string;
-    synced?: boolean;
+    assignedToId: string;
+    createdAt: string;
+    segment?: 'loyal' | 'high_potential' | 'at_risk' | 'new';
+    churnRisk?: boolean;
     aiOpportunityAnalysis?: { result: string; timestamp: string };
     aiNextStepSuggestion?: { result: string; timestamp: string };
     aiSentimentAnalysis?: { result: string; timestamp: string };
@@ -134,22 +85,21 @@ export interface Appointment {
     id: string;
     customerId: string;
     userId: string;
+    assignedToId: string;
     title: string;
     start: string;
     end: string;
-    allDay?: boolean;
+    allDay: boolean;
     notes?: string;
-    reminder?: string;
+    reminder?: 'none' | '15m' | '1h' | '1d';
     createdAt: string;
-    status?: 'active' | 'cancelled';
 }
 
 export interface Interview {
     id: string;
     customerId: string;
-    createdAt: string;
     formTarihi: string;
-    fuar: string;
+    fuar?: string;
     sektor: string[];
     ziyaretci: {
         firmaAdi: string;
@@ -164,34 +114,162 @@ export interface Interview {
         katalogGonderilecek: boolean;
         teklifGonderilecek: boolean;
         ziyaretEdilecek: boolean;
-        bizZiyaretEdecek: {
-            tarih: string;
-            adSoyad: string;
-        };
+        bizZiyaretEdecek: { tarih: string; adSoyad: string };
     };
     notlar: string;
     gorusmeyiYapan: string;
+    gorusmeyiYapanId: string;
+    createdAt: string;
     aiSummary?: string;
+}
+
+export interface OfferItem {
+    id: string;
+    cins: string;
+    miktar: number;
+    birim: string;
+    fiyat: number;
+    tutar: number;
+    teslimSuresi: string;
+}
+
+export interface Offer {
+    id: string;
+    customerId: string;
+    teklifNo: string;
+    currency: 'TRY' | 'USD' | 'EUR';
+    firma: {
+        yetkili: string;
+        telefon: string;
+        eposta: string;
+        vade: string;
+        teklifTarihi: string;
+    };
+    teklifVeren: {
+        yetkili: string;
+        telefon?: string;
+        eposta?: string;
+    };
+    teklifVerenId: string;
+    items: OfferItem[];
+    notlar: string;
+    toplam: number;
+    kdv: number;
+    genelToplam: number;
+    createdAt: string;
+}
+
+export type TaskStatus = 'pending' | 'in_progress' | 'completed';
+
+export interface Task {
+    id: string;
+    title: string;
+    description?: string;
+    status: TaskStatus;
+    assignedToId: string;
+    dueDate?: string;
+    relatedToEntity?: 'customer' | 'offer';
+    relatedToId?: string;
+    createdAt: string;
+}
+
+export type ExpenseCategory = 'travel' | 'food' | 'accommodation' | 'fuel' | 'representation' | 'other';
+
+export interface Expense {
+    id: string;
+    userId: string;
+    date: string;
+    category: ExpenseCategory;
+    amount: number;
+    currency: 'TRY' | 'USD' | 'EUR';
+    description: string;
+    receiptImage?: string;
+    createdAt: string;
+}
+
+export interface EmailMessage {
+    id: string;
+    from: { name: string; email: string };
+    to: { name: string; email: string };
+    subject: string;
+    body: string;
+    timestamp: string;
+    isRead: boolean;
+    folder: 'inbox' | 'sent' | 'drafts' | 'trash';
+    relatedToEntity?: 'customer' | 'offer';
+    relatedToId?: string;
+    attachments?: { name: string; size: string; type: string }[];
+}
+
+export interface EmailDraft {
+    id: string;
+    createdAt: string;
+    recipientEmail: string;
+    recipientName: string;
+    subject: string;
+    body: string;
+    status: 'draft' | 'sent';
+    relatedObjectType?: 'offer' | 'customer';
+    relatedObjectId?: string;
+    generatedBy?: 'ai_agent' | 'user';
+}
+
+export interface ErpSettings {
+    id: 'default';
+    server: string;
+    databasePath: string;
+    username: string;
+    isConnected: boolean;
+    lastSyncCustomers?: string;
+    lastSyncInvoices?: string;
+    lastSyncOffers?: string;
+    lastSyncStock?: string;
+    lastSyncStockLevels?: string;
+    lastSyncIncomingInvoices?: string;
+    lastSyncOutgoingInvoices?: string;
+}
+
+export interface StockItem {
+    id: string;
+    erpId: string;
+    sku: string;
+    name: string;
+    barcode: string;
+    unit: string;
+    price: number;
+    isActive: boolean;
+    lastSync: string;
+}
+
+export interface Invoice {
+    id: string;
+    customerId: string;
+    userId: string;
+    date: string;
+    totalAmount: number;
+    currency: 'TRY' | 'USD' | 'EUR';
+    description?: string;
+    items?: { stockId: string; quantity: number; price: number }[];
 }
 
 export interface Notification {
     id: string;
     timestamp: string;
-    isRead: boolean | number; // Dexie uses 0/1 for boolean indexes
+    isRead: boolean;
     messageKey: string;
     replacements?: Record<string, string>;
     type: 'customer' | 'appointment' | 'offer' | 'interview' | 'system' | 'reconciliation';
-    link?: { page: Page, id?: string };
+    link?: { page: Page; id?: string };
 }
 
 export interface LeaveRequest {
     id: string;
     userId: string;
+    requestDate: string;
     type: string;
     startDate: string;
     endDate: string;
-    reason: string;
-    requestDate: string;
+    reason?: string;
     status: 'pending' | 'approved' | 'rejected';
 }
 
@@ -199,18 +277,92 @@ export interface KmRecord {
     id: string;
     userId: string;
     date: string;
-    type: 'morning' | 'evening';
     km: number;
+    type: 'morning' | 'evening';
 }
 
 export interface LocationRecord {
     id: string;
     userId: string;
+    timestamp: string;
     latitude: number;
     longitude: number;
-    timestamp: string;
     isVisit?: boolean;
     customerId?: string;
+}
+
+export interface AISettings {
+    userId: string;
+    isAgentActive: boolean;
+    enableFollowUpDrafts: boolean;
+    enableAtRiskAlerts: boolean;
+    followUpDays: number;
+    atRiskDays: number;
+}
+
+export interface Reconciliation {
+    id: string;
+    customerId: string;
+    type: 'current_account' | 'ba_bs';
+    period: string;
+    amount: number;
+    currency: 'TRY' | 'USD' | 'EUR';
+    status: 'draft' | 'sent' | 'in_review' | 'approved' | 'rejected';
+    incomingInvoiceId: string;
+    outgoingInvoiceId: string;
+    notes?: string;
+    customerResponse?: string;
+    aiAnalysis?: string;
+    createdBy: string;
+    createdAt: string;
+}
+
+export interface CalculatorState {
+    id: 'default';
+    unit: 'metric' | 'inch';
+    activeTab: string;
+    inputs: any;
+}
+
+export interface CalculationHistoryItem {
+    id: number;
+    timestamp: number;
+    module: string;
+    unit: 'metric' | 'inch';
+    summary: string;
+}
+
+export interface IncomingInvoice {
+    id: string;
+    faturaNo: string;
+    tedarikciAdi: string;
+    vergiNo: string;
+    tarih: string;
+    tutar: number;
+    currency: 'TRY' | 'USD' | 'EUR';
+    description: string;
+}
+
+export interface OutgoingInvoice {
+    id: string;
+    faturaNo: string;
+    musteriAdi: string;
+    vergiNo: string;
+    tarih: string;
+    tutar: number;
+    currency: 'TRY' | 'USD' | 'EUR';
+    description: string;
+}
+
+export interface AuditLog {
+    id?: number;
+    userId: string;
+    userName: string;
+    action: string;
+    entity: string;
+    entityId: string;
+    timestamp: string;
+    details?: string;
 }
 
 export interface ShiftTemplate {
@@ -227,132 +379,6 @@ export interface ShiftAssignment {
     date: string;
 }
 
-export interface TripRecord {
-    id: string;
-    userId: string;
-    date: string;
-    startLocation: string;
-    endLocation: string;
-    notes: string;
-    odometerStart: number;
-    odometerEnd: number;
-}
-
-export interface TimesheetEntry {
-    date: string;
-    dayOfWeek: number;
-    status: 'work' | 'leave' | 'absent' | 'weekend';
-    checkIn: string | null;
-    checkOut: string | null;
-    totalHours: number;
-    overtimeHours: number;
-    missingHours: number;
-}
-
-export interface PayrollData {
-    grossSalary: number;
-    sgkWorkerShare: number;
-    unemploymentWorkerShare: number;
-    incomeTaxBase: number;
-    incomeTax: number;
-    stampTax: number;
-    netSalary: number;
-    sgkEmployerShare: number;
-    unemploymentEmployerShare: number;
-    totalEmployerCost: number;
-}
-
-export interface CalculatorState {
-    id: 'default';
-    unit: 'metric' | 'inch';
-    activeTab: string;
-    inputs: Record<string, Record<string, string>>;
-}
-
-export interface CalculationHistoryItem {
-    id?: number;
-    timestamp: number;
-    module: string;
-    unit: 'metric' | 'inch';
-    summary: string;
-}
-
-export interface ErpSettings {
-    id: 'default';
-    server: string;
-    databasePath: string;
-    username: string;
-    password?: string;
-    isConnected: boolean;
-    lastSyncCustomers?: string;
-    lastSyncStock?: string;
-    lastSyncStockLevels?: string;
-    lastSyncInvoices?: string;
-    lastSyncOffers?: string;
-    lastSyncIncomingInvoices?: string;
-    lastSyncOutgoingInvoices?: string;
-}
-
-export interface StockItem {
-    id: string; // SKU
-    erpId?: string;
-    sku: string;
-    name: string;
-    unit: string;
-    price: number;
-    isActive: boolean;
-    lastSync: string;
-}
-
-export interface Invoice {
-    id: string;
-    customerId: string;
-    userId: string;
-    date: string;
-    totalAmount: number;
-    currency: 'TRY' | 'USD' | 'EUR';
-    description?: string;
-    items?: any[];
-}
-
-export interface IncomingInvoice {
-    faturaNo: string;
-    tedarikciAdi: string;
-    vergiNo: string;
-    tarih: string;
-    tutar: number;
-    currency: 'TRY' | 'USD' | 'EUR';
-    description?: string;
-}
-
-export interface OutgoingInvoice {
-    faturaNo: string;
-    musteriAdi: string;
-    vergiNo: string;
-    tarih: string;
-    tutar: number;
-    currency: 'TRY' | 'USD' | 'EUR';
-    description?: string;
-    userId?: string; // To link to the salesperson
-}
-
-export interface Reconciliation {
-    id: string;
-    customerId: string;
-    type: 'current_account' | 'ba' | 'bs';
-    period: string; // e.g., '2025-08'
-    amount: number;
-    currency: 'TRY' | 'USD' | 'EUR';
-    status: 'draft' | 'sent' | 'in_review' | 'approved' | 'rejected';
-    createdAt: string;
-    createdBy: string;
-    incomingInvoiceId?: string;
-    outgoingInvoiceId?: string;
-    notes?: string;
-    customerResponse?: string;
-    aiAnalysis?: string;
-}
-
 export interface Warehouse {
     id: string;
     code: string;
@@ -361,54 +387,69 @@ export interface Warehouse {
 
 export interface StockLevel {
     id: string;
-    stockItemId: string; // Corresponds to StockItem.id (which is the SKU)
-    warehouseCode: string; // Corresponds to Warehouse.code
+    stockItemId: string;
+    warehouseCode: string;
     qtyOnHand: number;
 }
 
-export interface SyncQueueItem {
-    id?: number;
-    type: 'add-customer' | 'update-customer' | 'delete-customer';
-    payload: any;
-    timestamp: number;
+export type ReportType = 'sales_performance' | 'customer_invoice_analysis' | 'ai_analysis_summary' | 'customer_segmentation' | 'offer_success_analysis' | 'mileage_expense_report' | 'profit_loss_statement';
+
+export interface ReportFilters {
+    reportType: ReportType;
+    dateRange: { start: string; end: string };
+    userId?: string;
 }
 
-export interface AISettings {
-    userId: string;
-    isAgentActive: boolean;
-    enableFollowUpDrafts: boolean;
-    enableAtRiskAlerts: boolean;
-    followUpDays: number;
-    atRiskDays: number;
+export interface MileageReportData {
+    employeeName: string;
+    employeeId: string;
+    vehicleDescription: string;
+    authorizer: string;
+    ratePerKm: number;
+    periodStart: string;
+    periodEnd: string;
+    logs: {
+        id: string;
+        date: string;
+        startLocation: string;
+        endLocation: string;
+        description: string;
+        startOdometer: number;
+        endOdometer: number;
+    }[];
 }
 
-export interface EmailDraft {
-    id: string;
-    createdAt: string;
-    recipientEmail: string;
-    recipientName: string;
-    subject: string;
-    body: string;
-    status: 'draft' | 'sent';
-    relatedObjectType: 'offer' | 'customer';
-    relatedObjectId: string;
-    generatedBy: 'ai_agent' | 'user';
+export interface FinancialAccountData {
+    name: string;
+    monthlyValues: number[];
 }
 
-export interface AuditLog {
-    id?: number;
-    userId: string;
-    userName: string;
-    action: string;
-    entity: string;
-    entityId: string;
-    timestamp: string;
-    details?: string;
+export interface FinancialData {
+    year: number;
+    revenues: FinancialAccountData[];
+    cogs: FinancialAccountData[];
+    expenses: FinancialAccountData[];
 }
 
-export type ReportType =
-  | 'sales_performance'
-  | 'customer_invoice_analysis'
-  | 'ai_analysis_summary'
-  | 'customer_segmentation'
-  | 'offer_success_analysis';
+export interface DFMAnalysisItem {
+    issueType: 'critical' | 'warning' | 'info';
+    description: string;
+    suggestion: string;
+}
+
+export interface QuoteEstimation {
+    materialCost: number;
+    machiningTimeHours: number;
+    machiningCost: number;
+    setupCost: number;
+    totalEstimatedCost: number;
+    suggestedQuotePrice: number;
+    lineItems: {
+        description: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+    }[];
+}
+
+export type Page = 'dashboard' | 'customers' | 'email' | 'appointments' | 'gorusme-formu' | 'teklif-yaz' | 'personnel' | 'hesaplama-araclari' | 'profile' | 'yapay-zeka' | 'konum-takip' | 'erp-entegrasyonu' | 'ai-ayarlari' | 'raporlar' | 'email-taslaklari' | 'mutabakat' | 'audit-log' | 'tasks' | 'expenses' | 'manufacturing-analysis' | 'email-hub';

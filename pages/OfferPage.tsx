@@ -1,23 +1,21 @@
-
-
 import React, { useState, useMemo, useEffect, ChangeEvent } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Offer, OfferItem, Customer, OfferStatus } from '../types';
+import { Offer, OfferItem, Customer, EmailDraft } from '../types';
 import DataTable from '../components/common/DataTable';
 import Button from '../components/common/Button';
 import { downloadOfferAsPdf, getOfferHtml } from '../services/pdfService';
 import Loader from '../components/common/Loader';
 import { ViewState } from '../App';
 import { generateFollowUpEmail, enhanceDescription } from '../services/aiService';
-import { ASSETS } from '../constants';
 import CnkLogo from '../components/assets/CnkLogo';
 import Modal from '../components/common/Modal';
 import { v4 as uuidv4 } from 'uuid';
 import Autocomplete from '../components/common/Autocomplete';
 import { formatCurrency, formatDate } from '../utils/formatting';
+import { db } from '../services/dbService';
 import Input from '../components/common/Input';
 
 interface OfferPageProps {
@@ -32,12 +30,12 @@ interface OfferListPageProps {
 const OfferListPage = ({ setView }: OfferListPageProps) => {
     const { offers, customers } = useData();
     const { t } = useLanguage();
-    const [isDownloading, setIsDownloading] = useState(false);
+    const [isDownloading, setIsDownloading] = useState<string | null>(null);
     const { showNotification } = useNotification();
     const { currentUser } = useAuth();
 
     const handleDownload = async (offer: Offer) => {
-        setIsDownloading(true);
+        setIsDownloading(offer.id);
         const customer = customers.find(c => c.id === offer.customerId);
         const result = await downloadOfferAsPdf(offer, customer, t);
         if (result.success) {
@@ -45,18 +43,7 @@ const OfferListPage = ({ setView }: OfferListPageProps) => {
         } else {
             showNotification('pdfError', 'error');
         }
-        setIsDownloading(false);
-    };
-    
-    const getStatusClass = (status: OfferStatus) => {
-        const classes = {
-            draft: 'bg-gray-200 text-gray-800',
-            sent: 'bg-blue-200 text-blue-800',
-            negotiation: 'bg-yellow-200 text-yellow-800',
-            won: 'bg-green-200 text-green-800',
-            lost: 'bg-red-200 text-red-800',
-        };
-        return classes[status] || classes.draft;
+        setIsDownloading(null);
     };
 
     const columns = [
@@ -65,14 +52,7 @@ const OfferListPage = ({ setView }: OfferListPageProps) => {
             header: t('customers'), 
             accessor: (item: Offer) => customers.find(c => c.id === item.customerId)?.name || t('unknownCustomer')
         },
-        { 
-            header: t('status'), 
-            accessor: (item: Offer) => (
-                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(item.status)}`}>
-                    {t(item.status)}
-                </span>
-            )
-        },
+        { header: t('offerDetails'), accessor: (item: Offer) => item.firma.yetkili },
         { header: t('amount'), accessor: (item: Offer) => formatCurrency(item.genelToplam, item.currency), className: 'font-semibold' },
         { header: t('createdAt'), accessor: (item: Offer) => formatDate(item.createdAt) },
         {
@@ -80,7 +60,7 @@ const OfferListPage = ({ setView }: OfferListPageProps) => {
             accessor: (item: Offer) => (
                 <div className="flex gap-2">
                     <Button variant="info" size="sm" onClick={() => setView({ page: 'teklif-yaz', id: item.id })} icon="fas fa-eye" title={currentUser?.role === 'admin' ? `${t('view')}/${t('edit')}` : t('view')} />
-                    <Button variant="primary" size="sm" onClick={() => handleDownload(item)} icon="fas fa-file-pdf" title={t('downloadPdf')} />
+                    <Button variant="primary" size="sm" onClick={() => handleDownload(item)} icon="fas fa-file-pdf" title={t('downloadPdf')} isLoading={isDownloading === item.id} />
                 </div>
             ),
         },
@@ -88,7 +68,6 @@ const OfferListPage = ({ setView }: OfferListPageProps) => {
 
     return (
         <div>
-            {isDownloading && <Loader fullScreen={true} />}
             <div className="flex items-center justify-end mb-6">
                 <Button variant="primary" onClick={() => setView({ page: 'teklif-yaz', id: 'create' })} icon="fas fa-plus">{t('createOffer')}</Button>
             </div>
@@ -116,24 +95,22 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
     const isReadOnly = !isCreateMode && currentUser?.role !== 'admin';
     const [existingOffer, setExistingOffer] = useState<Offer | null>(null);
 
-    // State only holds the source of truth, not derived values like totals.
-    const [formState, setFormState] = useState<Omit<Offer, 'id' | 'createdAt' | 'teklifNo' | 'toplam' | 'kdv' | 'genelToplam' | 'aiFollowUpEmail'>>({
+    // FIX: Added `teklifVerenId` to the initial state to match the Offer type.
+    const [formState, setFormState] = useState<Omit<Offer, 'id' | 'createdAt' | 'teklifNo' | 'toplam' | 'kdv' | 'genelToplam'>>({
         customerId: '',
         currency: 'TRY',
         firma: { yetkili: '', telefon: '', eposta: '', vade: '', teklifTarihi: new Date().toISOString().slice(0,10) },
         teklifVeren: { yetkili: currentUser?.name || '', telefon: '', eposta: '' },
+        teklifVerenId: currentUser?.id || '',
         items: [],
         notlar: '',
-        status: 'draft',
-        statusReason: ''
     });
     
-    const [aiEmail, setAiEmail] = useState('');
+    const [aiDraft, setAiDraft] = useState({ subject: '', body: '' });
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [enhancingItemId, setEnhancingItemId] = useState<string|null>(null);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-    // Calculate totals on the fly. useMemo ensures this only recalculates when items change.
     const { toplam, kdv, genelToplam } = useMemo(() => {
         const subTotal = formState.items.reduce((acc, item) => acc + (item.tutar || 0), 0);
         const vat = subTotal * 0.20;
@@ -149,19 +126,33 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
         const offer = offers.find(o => o.id === offerId);
         setExistingOffer(offer || null);
         if (offer) {
+             // FIX: Added `teklifVerenId` to the state update to match the Offer type.
              setFormState({
                 customerId: offer.customerId,
                 currency: offer.currency,
                 firma: offer.firma,
                 teklifVeren: offer.teklifVeren,
+                teklifVerenId: offer.teklifVerenId,
                 items: offer.items,
                 notlar: offer.notlar,
-                status: offer.status || 'draft',
-                statusReason: offer.statusReason || ''
             });
-            setAiEmail(offer.aiFollowUpEmail || '');
+        } else if (isCreateMode) {
+            // Check for data from manufacturing analysis
+            const quoteData = sessionStorage.getItem('analysisQuoteData');
+            if (quoteData) {
+                try {
+                    const items = JSON.parse(quoteData);
+                    if (Array.isArray(items)) {
+                        setFormState(prev => ({ ...prev, items }));
+                    }
+                } catch (e) {
+                    console.error("Failed to parse quote data from session storage", e);
+                } finally {
+                    sessionStorage.removeItem('analysisQuoteData');
+                }
+            }
         }
-    }, [offerId, offers]);
+    }, [offerId, offers, isCreateMode]);
 
 
     const handleCustomerSelect = (custId: string) => {
@@ -171,19 +162,19 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
             customerId: custId,
             firma: {
                 ...prev.firma,
-                yetkili: customer?.name || '', // Assuming customer name is the contact person
+                yetkili: customer?.name || '', 
                 telefon: customer?.phone1 || '',
                 eposta: customer?.email || '',
             }
         }));
     };
     
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>, section?: 'firma' | 'teklifVeren') => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>, section: 'firma' | 'teklifVeren' | '') => {
         const { id, value } = e.target;
         if (section) {
             setFormState(prev => ({ ...prev, [section]: {...prev[section], [id]: value }}));
         } else {
-            setFormState(prev => ({ ...prev, [id]: value as any }));
+            setFormState(prev => ({ ...prev, [id]: value as 'TRY' | 'USD' | 'EUR' }));
         }
     };
     
@@ -271,7 +262,11 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
             const customer = customers.find(c => c.id === existingOffer.customerId);
             const result = await generateFollowUpEmail(existingOffer, customer);
             if(result.success) {
-                setAiEmail(result.text);
+                const lines = result.text.split('\n');
+                const subjectLine = lines.find(l => l.toLowerCase().startsWith('konu:'));
+                const subject = subjectLine ? subjectLine.substring(6).trim() : `${existingOffer.teklifNo} Nolu Teklifimiz Hakkında`;
+                const body = subjectLine ? lines.filter(l => !l.toLowerCase().startsWith('konu:')).join('\n').trim() : result.text;
+                setAiDraft({ subject, body });
             } else {
                 showNotification('aiError', 'error');
             }
@@ -282,14 +277,30 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
         }
     };
 
-    const handleSaveEmail = () => {
-        if (!existingOffer) return;
-        const updatedOffer = { ...existingOffer, aiFollowUpEmail: aiEmail };
-        updateOffer(updatedOffer);
+    const handleSaveEmail = async () => {
+        if (!existingOffer || !aiDraft.body) return;
+        const customer = customers.find(c => c.id === existingOffer.customerId);
+        if(!customer) return;
+
+        const newDraft: EmailDraft = {
+            id: uuidv4(),
+            createdAt: new Date().toISOString(),
+            recipientEmail: customer.email || '',
+            recipientName: customer.name,
+            subject: aiDraft.subject,
+            body: aiDraft.body,
+            status: 'draft',
+            relatedObjectType: 'offer',
+            relatedObjectId: existingOffer.id,
+            generatedBy: 'ai_agent'
+        };
+
+        await db.emailDrafts.add(newDraft);
         showNotification('emailSaved', 'success');
+        setAiDraft({ subject: '', body: '' });
     };
 
-    const InputField = ({label, id, value, onChange, section, readOnly=false, type="text"}: {label: string, id: string, value: string, onChange: (e: ChangeEvent<HTMLInputElement>) => void, section?: 'firma' | 'teklifVeren', readOnly?: boolean, type?: string}) => (
+    const InputField = ({label, id, value, onChange, section, readOnly=false, type="text"}: {label: string, id: string, value: string, onChange: (e: ChangeEvent<HTMLInputElement>) => void, section: 'firma' | 'teklifVeren' | '', readOnly?: boolean, type?: string}) => (
         <div className="flex items-center"><span className="w-24 font-semibold">{label}</span><span>:</span><input type={type} id={id} value={value} onChange={onChange} readOnly={readOnly} className="ml-2 flex-grow bg-transparent focus:outline-none focus:bg-slate-100 p-1 rounded"/></div>
     );
     
@@ -324,7 +335,7 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
                         <InputField label={t('email')} id="eposta" value={formState.firma.eposta} onChange={(e) => handleInputChange(e, 'firma')} readOnly={isReadOnly} section="firma" />
                         <InputField label={t('vade')} id="vade" value={formState.firma.vade} onChange={(e) => handleInputChange(e, 'firma')} readOnly={isReadOnly} section="firma" />
                         <InputField label={t('date')} id="teklifTarihi" type="date" value={formState.firma.teklifTarihi} onChange={(e) => handleInputChange(e, 'firma')} readOnly={isReadOnly} section="firma" />
-                        <InputField label={t('teklifNo')} id="teklifNo" value={existingOffer?.teklifNo || 'Otomatik'} onChange={() => {}} readOnly={true}/>
+                        <InputField label={t('teklifNo')} id="teklifNo" value={existingOffer?.teklifNo || 'Otomatik'} onChange={() => {}} section="" readOnly={true}/>
                     </div>
                     <div className="border-2 border-cnk-txt-primary-light p-2 space-y-1">
                         <h3 className="font-bold">Teklif Veren Firma:</h3>
@@ -332,24 +343,12 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
                         <InputField label={t('phone')} id="telefon" value={formState.teklifVeren.telefon} onChange={(e) => handleInputChange(e, 'teklifVeren')} readOnly={isReadOnly} section="teklifVeren" />
                         <InputField label={t('email')} id="eposta" value={formState.teklifVeren.eposta} onChange={(e) => handleInputChange(e, 'teklifVeren')} readOnly={isReadOnly} section="teklifVeren" />
                         <div className="flex items-center"><span className="w-24 font-semibold">Para Birimi</span><span>:</span>
-                            <select id="currency" value={formState.currency} onChange={(e) => handleInputChange(e)} disabled={isReadOnly} className="ml-2 flex-grow bg-transparent focus:outline-none focus:bg-slate-100 p-1 rounded">
+                            <select id="currency" value={formState.currency} onChange={(e) => handleInputChange(e, '')} disabled={isReadOnly} className="ml-2 flex-grow bg-transparent focus:outline-none focus:bg-slate-100 p-1 rounded">
                                 <option value="TRY">TRY (₺)</option>
                                 <option value="USD">USD ($)</option>
                                 <option value="EUR">EUR (€)</option>
                             </select>
                         </div>
-                         <div className="flex items-center"><span className="w-24 font-semibold">{t('status')}</span><span>:</span>
-                            <select id="status" value={formState.status} onChange={(e) => handleInputChange(e)} disabled={isReadOnly} className="ml-2 flex-grow bg-transparent focus:outline-none focus:bg-slate-100 p-1 rounded">
-                                <option value="draft">{t('draft')}</option>
-                                <option value="sent">{t('sent')}</option>
-                                <option value="negotiation">{t('negotiation')}</option>
-                                <option value="won">{t('won')}</option>
-                                <option value="lost">{t('lost')}</option>
-                            </select>
-                        </div>
-                        {formState.status === 'lost' && (
-                            <InputField label={t('lostReason')} id="statusReason" value={formState.statusReason || ''} onChange={(e) => handleInputChange(e)} readOnly={isReadOnly} />
-                        )}
                     </div>
                 </div>
                 
@@ -399,7 +398,7 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
                 <div className="grid grid-cols-3 gap-6 mt-4 text-sm">
                     <div className="col-span-2 border-2 border-cnk-txt-primary-light p-2">
                         <label htmlFor="notlar" className="font-bold">TEKLİF NOT:</label>
-                        <textarea id="notlar" value={formState.notlar} onChange={(e) => handleInputChange(e)} readOnly={isReadOnly} rows={4} className="w-full mt-1 p-1 focus:outline-none focus:bg-slate-100"></textarea>
+                        <textarea id="notlar" value={formState.notlar} onChange={(e) => setFormState(prev => ({...prev, notlar: e.target.value}))} readOnly={isReadOnly} rows={4} className="w-full mt-1 p-1 focus:outline-none focus:bg-slate-100"></textarea>
                     </div>
                     <div className="border-2 border-cnk-txt-primary-light">
                         <div className="flex"><div className="w-1/2 p-1 bg-cnk-accent-pink text-white font-bold border border-cnk-txt-primary-light">TOPLAM</div><div className="w-1/2 p-1 text-right border border-cnk-txt-primary-light">{formatCurrency(toplam, formState.currency)}</div></div>
@@ -440,19 +439,24 @@ const OfferForm = ({ setView, offerId }: OfferFormProps) => {
                     <h3 className="text-xl font-bold text-primary mb-2">{t('aiAssistant')}</h3>
                     <Button onClick={handleGenerateEmail} isLoading={isAiLoading} icon="fas fa-robot">{t('generateFollowUpEmail')}</Button>
                     
-                    {(isAiLoading || aiEmail) && (
+                    {(isAiLoading || aiDraft.body) && (
                         <div className="mt-4 p-4 bg-slate-50 rounded-lg">
                             <h4 className="font-semibold text-text-dark mb-2">{t('aiGeneratedEmail')}</h4>
                             {isAiLoading ? <Loader/> : (
-                                <>
+                                <div className="space-y-3">
+                                    <Input 
+                                        label={t('subject')}
+                                        value={aiDraft.subject}
+                                        onChange={(e) => setAiDraft(prev => ({ ...prev, subject: e.target.value }))}
+                                    />
                                     <textarea 
-                                        value={aiEmail}
-                                        onChange={(e) => setAiEmail(e.target.value)}
+                                        value={aiDraft.body}
+                                        onChange={(e) => setAiDraft(prev => ({ ...prev, body: e.target.value }))}
                                         rows={10}
                                         className="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                                     />
                                     <Button onClick={handleSaveEmail} variant="success" size="sm" icon="fas fa-save" className="mt-2">{t('saveEmail')}</Button>
-                                </>
+                                </div>
                             )}
                         </div>
                     )}

@@ -1,6 +1,5 @@
-
-import { db } from '@/services/dbService';
-import { User, AuditLog } from '@/types';
+import { db } from './dbService';
+import { User, AuditLog } from '../types';
 
 export const auditLogService = {
     logAction: async (user: User, action: string, entity: string, entityId: string, details?: string) => {

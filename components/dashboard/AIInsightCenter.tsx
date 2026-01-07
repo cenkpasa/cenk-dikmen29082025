@@ -1,15 +1,15 @@
-
 import React from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useNotificationCenter } from '@/contexts/NotificationCenterContext';
-import { ViewState } from '@/App';
-import { Notification } from '@/types';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { useNotificationCenter } from '../../contexts/NotificationCenterContext';
+import { ViewState } from '../../App';
+import { Notification } from '../../types';
 
 interface AIInsightCenterProps {
     setView: (view: ViewState) => void;
 }
 
-const InsightCard = ({ insight, setView }: { insight: Notification, setView: (view: ViewState) => void }) => {
+// Fix: Use React.FC to correctly handle standard props like 'key' in list renderings
+const InsightCard: React.FC<{ insight: Notification, setView: (view: ViewState) => void }> = ({ insight, setView }) => {
     const { t } = useLanguage();
     
     const iconMap = {
@@ -35,7 +35,7 @@ const InsightCard = ({ insight, setView }: { insight: Notification, setView: (vi
     };
 
     return (
-        <div className={`p-4 rounded-cnk-element border-l-4 ${cardColor} flex items-start gap-4`}>
+        <div className={`p-4 rounded-lg border-l-4 ${cardColor} flex items-start gap-4`}>
             <div className="text-xl mt-1">
                 <i className={iconMap[insight.type]}></i>
             </div>
@@ -58,7 +58,7 @@ const AIInsightCenter = ({ setView }: AIInsightCenterProps) => {
     const aiInsights = notifications.filter(n => !n.isRead);
 
     return (
-        <div className="bg-cnk-panel-light p-6 rounded-cnk-card border border-cnk-border-light h-full flex flex-col">
+        <div className="bg-cnk-panel-light p-6 rounded-xl shadow-sm border border-cnk-border-light h-full flex flex-col">
             <h3 className="font-bold text-lg text-cnk-txt-primary-light mb-4">
                 <i className="fas fa-robot mr-2 text-cnk-accent-primary"></i>
                 {t('aiAnalysisCenter')}

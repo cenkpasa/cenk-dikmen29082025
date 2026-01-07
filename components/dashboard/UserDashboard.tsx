@@ -1,13 +1,12 @@
-
 import React, { useMemo } from 'react';
-import StatCard from '@/components/dashboard/StatCard';
-import LatestActivity from '@/components/dashboard/LatestActivity';
-import { useData } from '@/contexts/DataContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { ViewState } from '@/App';
-import { useErp } from '@/contexts/ErpContext';
-import PersonalGoalTracker from '@/components/dashboard/PersonalGoalTracker';
+import StatCard from './StatCard';
+import LatestActivity from './LatestActivity';
+import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { ViewState } from '../../App';
+import { useErp } from '../../contexts/ErpContext';
+import PersonalGoalTracker from './PersonalGoalTracker';
 // import UpcomingAppointments from './UpcomingAppointments'; // This can be a future component
 
 const UserDashboard = ({ setView }: { setView: (view: ViewState) => void; }) => {

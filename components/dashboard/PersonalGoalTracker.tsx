@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
-import * as aiService from '@/services/aiService';
+import { useLanguage } from '../../contexts/LanguageContext';
+import * as aiService from '../../services/aiService';
 
 const PersonalGoalTracker = ({ target, current }: { target: number, current: number }) => {
     const { t } = useLanguage();
@@ -21,7 +21,7 @@ const PersonalGoalTracker = ({ target, current }: { target: number, current: num
     };
 
     return (
-        <div className="bg-cnk-panel-light p-6 rounded-cnk-card shadow-md border border-cnk-border-light h-full">
+        <div className="bg-cnk-panel-light p-6 rounded-xl shadow-sm border border-cnk-border-light h-full">
             <div className="flex justify-between items-center">
                 <h3 className="font-bold text-lg text-cnk-txt-primary-light">{t('monthlySalesTarget')}</h3>
                 <span className="font-bold text-cnk-accent-primary text-xl">{target.toLocaleString('tr-TR')} ₺</span>

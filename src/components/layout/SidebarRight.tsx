@@ -1,1 +1,0 @@
-full contents of src/components/layout/SidebarRight.tsx

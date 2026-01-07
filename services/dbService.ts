@@ -1,5 +1,6 @@
+
 import Dexie, { type Table } from 'dexie';
-import { User, Customer, Appointment, Interview, Offer, ErpSettings, StockItem, Invoice, Notification, LeaveRequest, KmRecord, LocationRecord, AISettings, EmailDraft, Reconciliation, CalculatorState, CalculationHistoryItem, IncomingInvoice, OutgoingInvoice, AuditLog, ShiftTemplate, ShiftAssignment, Warehouse, StockLevel, Task, Expense, PayrollEntry, EmailMessage } from '../types';
+import { User, Customer, Appointment, Interview, Offer, ErpSettings, StockItem, Invoice, Notification, LeaveRequest, KmRecord, LocationRecord, AISettings, EmailDraft, Reconciliation, CalculatorState, CalculationHistoryItem, IncomingInvoice, OutgoingInvoice, AuditLog, ShiftTemplate, ShiftAssignment, Warehouse, StockLevel, Task, Expense, PayrollEntry, EmailMessage, EmailAccountSettings, Contact } from '../types';
 import { DEFAULT_ADMIN, MOCK_APPOINTMENTS, MOCK_CUSTOMERS } from '../constants';
 import { MOCK_INCOMING_INVOICES, MOCK_OUTGOING_INVOICES } from './erpMockData';
 import { v4 as uuidv4 } from 'uuid';
@@ -22,6 +23,7 @@ export class AppDatabase extends Dexie {
     aiSettings!: Table<AISettings, string>;
     emailDrafts!: Table<EmailDraft, string>;
     emails!: Table<EmailMessage, string>;
+    emailSettings!: Table<EmailAccountSettings, 'default'>;
     reconciliations!: Table<Reconciliation, string>;
     calculatorState!: Table<CalculatorState, 'default'>;
     calculationHistory!: Table<CalculationHistoryItem, number>;
@@ -32,10 +34,11 @@ export class AppDatabase extends Dexie {
     shiftAssignments!: Table<ShiftAssignment, string>;
     warehouses!: Table<Warehouse, string>;
     stockLevels!: Table<StockLevel, string>;
+    contacts!: Table<Contact, string>;
 
     constructor() {
         super('CnkCrmDatabase');
-        (this as Dexie).version(31).stores({
+        (this as Dexie).version(33).stores({
             users: 'id, &username',
             customers: 'id, &currentCode, name, createdAt, status, assignedToId',
             appointments: 'id, customerId, start, userId, assignedToId',
@@ -53,6 +56,7 @@ export class AppDatabase extends Dexie {
             aiSettings: 'userId',
             emailDrafts: 'id, createdAt, status, relatedObjectId',
             emails: 'id, timestamp, folder, isRead, subject, [folder+isRead]',
+            emailSettings: 'id',
             reconciliations: 'id, customerId, status, period, createdAt',
             calculatorState: 'id',
             calculationHistory: '++id, timestamp',
@@ -62,26 +66,78 @@ export class AppDatabase extends Dexie {
             shiftTemplates: 'id, name',
             shiftAssignments: 'id, &[personnelId+date]',
             warehouses: 'id, &code',
-            stockLevels: 'id, &[stockItemId+warehouseCode]'
+            stockLevels: 'id, &[stockItemId+warehouseCode]',
+            contacts: 'id, &email, name'
         });
     }
 }
 
 export const db = new AppDatabase();
 
+// Realistic mock emails for history
+const MOCK_EMAIL_HISTORY: EmailMessage[] = [
+    {
+        id: uuidv4(),
+        from: { name: 'Ahmet Yılmaz', email: 'ahmet.yilmaz@musteri.com' },
+        to: { name: 'Cenk Dikmen', email: 'satis@cnkkesicitakim.com.tr' },
+        subject: 'Fiyat Teklifi Talebi - Karbür Uçlar',
+        body: 'Merhaba Cenk Bey,\n\nEkteki teknik resimdeki parçalar için kullanabileceğimiz karbür uçlar hakkında fiyat teklifi rica ediyorum. Yıllık tüketimimiz yaklaşık 500 adet olacaktır.\n\nİyi çalışmalar,\nAhmet Yılmaz\nSatın Alma Müdürü',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(), // 5 days ago
+        isRead: true,
+        folder: 'inbox'
+    },
+    {
+        id: uuidv4(),
+        from: { name: 'Cenk Dikmen', email: 'satis@cnkkesicitakim.com.tr' },
+        to: { name: 'Ahmet Yılmaz', email: 'ahmet.yilmaz@musteri.com' },
+        subject: 'RE: Fiyat Teklifi Talebi - Karbür Uçlar',
+        body: 'Merhaba Ahmet Bey,\n\nİlginiz için teşekkürler. İlgili ürünler için teklifimiz ektedir. Stoklarımızda mevcuttur, sipariş onayı durumunda 2 gün içinde sevk edebiliriz.\n\nSaygılarımla,\nCenk Dikmen\nCNK Kesici Takım',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(), // 4 days ago
+        isRead: true,
+        folder: 'sent'
+    },
+    {
+        id: uuidv4(),
+        from: { name: 'Mehmet Demir', email: 'mehmet@tedarikci.com' },
+        to: { name: 'Satis Ekibi', email: 'satis@cnkkesicitakim.com.tr' },
+        subject: 'Yeni Ürün Kataloğu 2025',
+        body: 'Değerli İş Ortağımız,\n\n2025 yılı yeni ürün kataloğumuz yayınlandı. İncelemeniz için linki aşağıda paylaşıyorum.\n\nSaygılar,\nMehmet Demir',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+        isRead: false,
+        folder: 'inbox'
+    },
+    {
+        id: uuidv4(),
+        from: { name: 'Banka Bildirim', email: 'noreply@banka.com' },
+        to: { name: 'Muhasebe', email: 'muhasebe@cnkkesicitakim.com.tr' },
+        subject: 'Hesap Ekstresi - Ağustos 2025',
+        body: 'Sayın Müşterimiz,\n\nAğustos 2025 dönemine ait hesap ekstreniz hazırdır. İnternet bankacılığı üzerinden görüntüleyebilirsiniz.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
+        isRead: true,
+        folder: 'trash'
+    }
+];
+
 /**
  * Seeds initial mock data for testing purposes.
  */
 export const seedInitialData = async () => {
-    const userCount = await db.users.count();
-    if (userCount === 0) {
-        // Fix: Explicitly ensuring DEFAULT_ADMIN has an id during add operation
-        // to avoid "Evaluating the object store's key path did not yield a value" error.
-        const adminData: User = {
-            ...DEFAULT_ADMIN,
-            id: DEFAULT_ADMIN.id || 'admin-id'
-        };
+    // FIX: Always ensure admin exists and has correct credentials on startup
+    const adminUser = await db.users.get('admin-id');
+    const adminData: User = {
+        ...DEFAULT_ADMIN,
+        id: 'admin-id' // Ensure ID matches constants
+    };
+
+    if (!adminUser) {
+        console.log("Seeding default admin user...");
         await db.users.add(adminData);
+    } else {
+        // Force update password to ensure login works even if it was changed
+        if (adminUser.password !== DEFAULT_ADMIN.password) {
+            console.log("Resetting admin password to default...");
+            await db.users.update('admin-id', { password: DEFAULT_ADMIN.password });
+        }
     }
     
     // Seed invoices if empty
@@ -92,6 +148,70 @@ export const seedInitialData = async () => {
     const outCount = await db.outgoingInvoices.count();
     if (outCount === 0) {
         await db.outgoingInvoices.bulkAdd(MOCK_OUTGOING_INVOICES.map(i => ({...i, id: i.faturaNo} as OutgoingInvoice)));
+    }
+
+    // Seed emails if empty
+    const emailCount = await db.emails.count();
+    if (emailCount === 0) {
+        console.log("Seeding email history...");
+        await db.emails.bulkAdd(MOCK_EMAIL_HISTORY);
+        
+        // Seed contacts from initial emails
+        console.log("Seeding contacts from initial emails...");
+        const contactsMap = new Map<string, Contact>();
+        
+        MOCK_EMAIL_HISTORY.forEach(email => {
+            // Process sender
+            if (email.folder === 'inbox') {
+                if (!contactsMap.has(email.from.email)) {
+                    contactsMap.set(email.from.email, {
+                        id: uuidv4(),
+                        name: email.from.name,
+                        email: email.from.email,
+                        source: 'incoming',
+                        lastContacted: email.timestamp
+                    });
+                }
+            } else if (email.folder === 'sent') {
+                // Process recipient
+                if (!contactsMap.has(email.to.email)) {
+                    contactsMap.set(email.to.email, {
+                        id: uuidv4(),
+                        name: email.to.name,
+                        email: email.to.email,
+                        source: 'outgoing',
+                        lastContacted: email.timestamp
+                    });
+                }
+            }
+        });
+        
+        const contacts = Array.from(contactsMap.values());
+        if (contacts.length > 0) {
+            await db.contacts.bulkPut(contacts);
+        }
+    }
+
+    // Seed default email settings with signature if empty
+    const settings = await db.emailSettings.get('default');
+    if (!settings) {
+        const defaultSettings: EmailAccountSettings = {
+            id: 'default',
+            emailAddress: 'satis@cnkkesicitakim.com.tr',
+            senderName: 'Cenk Dikmen',
+            signature: '\n\n--\nCenk Dikmen\nGenel Müdür\nCNK Kesici Takım\nTel: +90 312 395 55 55\nWeb: www.cnkkesicitakim.com.tr',
+            imapHost: 'imap.yandex.com',
+            imapPort: 993,
+            imapUser: 'satis@cnkkesicitakim.com.tr',
+            imapPass: '',
+            imapSecurity: 'ssl',
+            smtpHost: 'smtp.yandex.com',
+            smtpPort: 465,
+            smtpUser: 'satis@cnkkesicitakim.com.tr',
+            smtpPass: '',
+            smtpSecurity: 'ssl'
+        };
+        await db.emailSettings.add(defaultSettings);
     }
 };
 

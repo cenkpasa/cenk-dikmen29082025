@@ -6,15 +6,24 @@ import { EmailMessage } from '../types';
 import Button from '../components/common/Button';
 import { formatDateTime } from '../utils/formatting';
 import EmailComposer from '../components/email/EmailComposer';
+import EmailSettingsModal from '../components/email/EmailSettingsModal';
+import { useNotification } from '../contexts/NotificationContext';
+import ContactListModal from '../components/email/ContactListModal';
 
 const EmailPage = () => {
     const { t } = useLanguage();
-    const { emails, markAsRead, deleteEmail, unreadCount } = useEmail();
+    const { emails, markAsRead, deleteEmail, unreadCount, syncEmails, isSyncing, lastSync } = useEmail();
+    const { showNotification } = useNotification();
     
     const [activeFolder, setActiveFolder] = useState<'inbox' | 'sent' | 'drafts' | 'trash'>('inbox');
     const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
     const [isComposerOpen, setIsComposerOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isAddressBookOpen, setIsAddressBookOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // State to hold recipients selected from Address Book for bulk compose
+    const [composeRecipients, setComposeRecipients] = useState<string[]>([]);
 
     const filteredEmails = useMemo(() => {
         return emails.filter(e => 
@@ -35,12 +44,33 @@ const EmailPage = () => {
         }
     };
 
+    const handleSync = async () => {
+        await syncEmails();
+        showNotification('foldersSynced', 'success');
+    };
+
+    const handleAddressBookSelect = (emails: string[]) => {
+        setComposeRecipients(emails);
+        setIsAddressBookOpen(false);
+        setIsComposerOpen(true);
+    };
+
     return (
         <div className="flex flex-col md:flex-row h-[calc(100vh-120px)] bg-white rounded-xl shadow-lg border border-cnk-border-light overflow-hidden">
             {/* Left Sidebar: Folders */}
             <div className="w-full md:w-64 border-r bg-slate-50 p-4 flex flex-col gap-2">
-                <Button onClick={() => setIsComposerOpen(true)} icon="fas fa-edit" className="mb-4 w-full justify-start py-3">
+                <Button onClick={() => { setComposeRecipients([]); setIsComposerOpen(true); }} icon="fas fa-edit" className="mb-2 w-full justify-start py-3">
                     {t('createEmail')}
+                </Button>
+
+                <Button 
+                    onClick={handleSync} 
+                    variant="secondary" 
+                    icon={isSyncing ? "fas fa-sync fa-spin" : "fas fa-sync"} 
+                    className="mb-4 w-full justify-start py-2 text-cnk-accent-primary border-cnk-accent-primary/30 hover:bg-cnk-accent-primary/10"
+                    disabled={isSyncing}
+                >
+                    {isSyncing ? t('syncing') : t('sendReceive')}
                 </Button>
                 
                 {[
@@ -61,6 +91,28 @@ const EmailPage = () => {
                         {folder.count ? <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${activeFolder === folder.id ? 'bg-white text-cnk-accent-primary' : 'bg-red-500 text-white'}`}>{folder.count}</span> : null}
                     </button>
                 ))}
+                
+                <div className="mt-auto pt-2 space-y-2">
+                    {lastSync && (
+                        <div className="px-3 py-1 text-xs text-center text-slate-400 border-t border-slate-200 pt-2">
+                            {t('lastSync')}: {lastSync.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
+                    )}
+                    <button
+                        onClick={() => setIsAddressBookOpen(true)}
+                        className="flex w-full items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-slate-200 transition-colors border-t border-slate-200"
+                    >
+                        <i className="fas fa-address-book w-5"></i>
+                        <span className="font-medium">{t('addressBook')}</span>
+                    </button>
+                    <button
+                        onClick={() => setIsSettingsOpen(true)}
+                        className="flex w-full items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-slate-200 transition-colors"
+                    >
+                        <i className="fas fa-cog w-5"></i>
+                        <span className="font-medium">{t('emailSettingsTitle')}</span>
+                    </button>
+                </div>
             </div>
 
             {/* Middle: Email List */}
@@ -139,7 +191,21 @@ const EmailPage = () => {
                 )}
             </div>
             
-            {isComposerOpen && <EmailComposer isOpen={isComposerOpen} onClose={() => setIsComposerOpen(false)} />}
+            {isComposerOpen && (
+                <EmailComposer 
+                    isOpen={isComposerOpen} 
+                    onClose={() => { setIsComposerOpen(false); setComposeRecipients([]); }} 
+                    initialRecipients={composeRecipients}
+                />
+            )}
+            {isSettingsOpen && <EmailSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />}
+            {isAddressBookOpen && (
+                <ContactListModal 
+                    isOpen={isAddressBookOpen} 
+                    onClose={() => setIsAddressBookOpen(false)} 
+                    onSelect={handleAddressBookSelect}
+                />
+            )}
         </div>
     );
 };

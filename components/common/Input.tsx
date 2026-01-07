@@ -1,3 +1,4 @@
+
 import React, { InputHTMLAttributes } from 'react';
 
 // Fix: Explicitly extending standard props to ensure they are recognized in consumers
@@ -8,7 +9,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     variant?: 'default' | 'dark' | 'transparent';
 }
 
-const Input: React.FC<InputProps> = ({ label, icon, id, containerClassName = '', variant = 'default', ...props }) => {
+const Input: React.FC<InputProps> = ({ label, icon, id, containerClassName = '', variant = 'default', autoComplete = "on", ...props }) => {
     
     const variantClasses = {
         default: "border-cnk-border-light bg-cnk-panel-light text-cnk-txt-primary-light focus:border-cnk-accent-primary focus:ring-cnk-accent-primary/50",
@@ -26,7 +27,8 @@ const Input: React.FC<InputProps> = ({ label, icon, id, containerClassName = '',
             )}
             <input
                 id={id}
-                className={`w-full rounded-lg border shadow-sm transition duration-150 ease-in-out focus:outline-none focus:ring-2 ${variantClasses[variant]}`}
+                autoComplete={autoComplete}
+                className={`w-full rounded-lg border shadow-sm transition duration-150 ease-in-out focus:outline-none focus:ring-2 select-text ${variantClasses[variant]}`}
                 {...props}
             />
         </div>

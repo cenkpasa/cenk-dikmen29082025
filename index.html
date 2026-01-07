@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -34,6 +35,19 @@
       body {
         font-family: 'Poppins', sans-serif;
         background-color: var(--cnk-bg-light);
+      }
+      /* Ensure text selection and context menu works */
+      * {
+        user-select: text;
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
+      }
+      button, a, nav, .no-select {
+        user-select: none;
+      }
+      input, textarea {
+        user-select: text !important;
       }
     </style>
     <script>

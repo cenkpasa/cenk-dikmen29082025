@@ -1,196 +1,14 @@
 
-// ... existing imports ...
-
 export type UserRole = 'admin' | 'saha' | 'muhasebe';
 
-export interface User {
-    id: string;
-    username: string;
-    password?: string;
-    role: UserRole;
-    name: string;
-    jobTitle?: string;
-    avatar?: string;
-    tcNo?: string;
-    phone?: string;
-    startDate?: string;
-    employmentStatus?: string;
-    bloodType?: string;
-    licensePlate?: string;
-    gender?: 'male' | 'female' | 'other';
-    salary?: number;
-    educationLevel?: string;
-    address?: string;
-    annualLeaveDays?: number;
-    workType?: string;
-    vehicleModel?: string;
-    vehicleInitialKm?: number;
-    salesTarget?: number;
-    payrollHistory?: PayrollEntry[];
-}
-
-export interface PayrollEntry {
-    month: string;
-    grossSalary: number;
-    netSalary: number;
-    sgkWorker: number;
-    unemploymentWorker: number;
-    incomeTax: number;
-    stampTax: number;
-    sgkEmployer: number;
-    unemploymentEmployer: number;
-    totalEmployerCost: number;
-}
-
-export interface Customer {
-    id: string;
-    name: string;
-    email?: string;
-    status: 'active' | 'passive';
-    currentCode?: string;
-    commercialTitle?: string;
-    address?: string;
-    country?: string;
-    city?: string;
-    district?: string;
-    postalCode?: string;
-    group?: string;
-    subgroup1?: string;
-    subgroup2?: string;
-    phone1?: string;
-    phone2?: string;
-    homePhone?: string;
-    mobilePhone1?: string;
-    fax?: string;
-    taxOffice?: string;
-    taxNumber?: string;
-    nationalId?: string;
-    specialCode1?: string;
-    specialCode2?: string;
-    specialCode3?: string;
-    registrationDate: string;
-    specialDate?: string;
-    webcamImage?: string;
-    notes?: string;
-    assignedToId: string;
-    createdAt: string;
-    segment?: 'loyal' | 'high_potential' | 'at_risk' | 'new';
-    churnRisk?: boolean;
-    aiOpportunityAnalysis?: { result: string; timestamp: string };
-    aiNextStepSuggestion?: { result: string; timestamp: string };
-    aiSentimentAnalysis?: { result: string; timestamp: string };
-}
-
-export interface Appointment {
-    id: string;
-    customerId: string;
-    userId: string;
-    assignedToId: string;
-    title: string;
-    start: string;
-    end: string;
-    allDay: boolean;
-    notes?: string;
-    reminder?: 'none' | '15m' | '1h' | '1d';
-    createdAt: string;
-}
-
-export interface Interview {
-    id: string;
-    customerId: string;
-    formTarihi: string;
-    fuar?: string;
-    sektor: string[];
-    ziyaretci: {
-        firmaAdi: string;
-        adSoyad: string;
-        bolumu: string;
-        telefon: string;
-        adres: string;
-        email: string;
-        web: string;
-    };
-    aksiyonlar: {
-        katalogGonderilecek: boolean;
-        teklifGonderilecek: boolean;
-        ziyaretEdilecek: boolean;
-        bizZiyaretEdecek: { tarih: string; adSoyad: string };
-    };
-    notlar: string;
-    gorusmeyiYapan: string;
-    gorusmeyiYapanId: string;
-    createdAt: string;
-    aiSummary?: string;
-}
-
-export interface OfferItem {
-    id: string;
-    cins: string;
-    miktar: number;
-    birim: string;
-    fiyat: number;
-    tutar: number;
-    teslimSuresi: string;
-}
-
-export interface Offer {
-    id: string;
-    customerId: string;
-    teklifNo: string;
-    currency: 'TRY' | 'USD' | 'EUR';
-    firma: {
-        yetkili: string;
-        telefon: string;
-        eposta: string;
-        vade: string;
-        teklifTarihi: string;
-    };
-    teklifVeren: {
-        yetkili: string;
-        telefon?: string;
-        eposta?: string;
-    };
-    teklifVerenId: string;
-    items: OfferItem[];
-    notlar: string;
-    toplam: number;
-    kdv: number;
-    genelToplam: number;
-    createdAt: string;
-}
-
-export type TaskStatus = 'pending' | 'in_progress' | 'completed';
-
-export interface Task {
-    id: string;
-    title: string;
-    description?: string;
-    status: TaskStatus;
-    assignedToId: string;
-    dueDate?: string;
-    relatedToEntity?: 'customer' | 'offer';
-    relatedToId?: string;
-    createdAt: string;
-}
-
-export type ExpenseCategory = 'travel' | 'food' | 'accommodation' | 'fuel' | 'representation' | 'other';
-
-export interface Expense {
-    id: string;
-    userId: string;
-    date: string;
-    category: ExpenseCategory;
-    amount: number;
-    currency: 'TRY' | 'USD' | 'EUR';
-    description: string;
-    receiptImage?: string;
-    createdAt: string;
-}
+// ... existing interfaces ...
 
 export interface EmailMessage {
     id: string;
     from: { name: string; email: string };
     to: { name: string; email: string };
+    cc?: string[];
+    bcc?: string[];
     subject: string;
     body: string;
     timestamp: string;
@@ -200,6 +18,36 @@ export interface EmailMessage {
     relatedToId?: string;
     attachments?: { name: string; size: string; type: string }[];
 }
+
+export interface Contact {
+    id: string;
+    name: string;
+    email: string;
+    company?: string;
+    source: 'manual' | 'incoming' | 'outgoing';
+    lastContacted?: string;
+}
+
+export interface EmailAccountSettings {
+    id: 'default';
+    emailAddress: string;
+    senderName: string;
+    signature?: string; // Added signature field
+    // Incoming (IMAP)
+    imapHost: string;
+    imapPort: number;
+    imapUser: string;
+    imapPass: string;
+    imapSecurity: 'ssl' | 'tls' | 'none';
+    // Outgoing (SMTP)
+    smtpHost: string;
+    smtpPort: number;
+    smtpUser: string;
+    smtpPass: string;
+    smtpSecurity: 'ssl' | 'tls' | 'none';
+}
+
+// ... existing interfaces ...
 
 export interface EmailDraft {
     id: string;
@@ -377,6 +225,7 @@ export interface ShiftAssignment {
     personnelId: string;
     shiftTemplateId: string;
     date: string;
+    createdBy?: string;
 }
 
 export interface Warehouse {
@@ -450,6 +299,191 @@ export interface QuoteEstimation {
         unitPrice: number;
         totalPrice: number;
     }[];
+}
+
+export interface PayrollEntry {
+    month: string;
+    grossSalary: number;
+    netSalary: number;
+    totalEmployerCost: number;
+    sgkWorker: number;
+    unemploymentWorker: number;
+    incomeTax: number;
+    stampTax: number;
+    sgkEmployer: number;
+    unemploymentEmployer: number;
+}
+
+export interface User {
+    id: string;
+    username: string;
+    password?: string;
+    role: UserRole;
+    name: string;
+    jobTitle?: string;
+    avatar?: string;
+    tcNo?: string;
+    phone?: string;
+    startDate?: string;
+    employmentStatus?: 'Aktif' | 'Pasif';
+    bloodType?: string;
+    licensePlate?: string;
+    gender?: 'male' | 'female' | 'other';
+    salary?: number;
+    educationLevel?: string;
+    address?: string;
+    annualLeaveDays?: number;
+    workType?: 'full-time' | 'part-time';
+    vehicleModel?: string;
+    vehicleInitialKm?: number;
+    salesTarget?: number;
+    payrollHistory?: PayrollEntry[];
+}
+
+export interface Customer {
+    id: string;
+    createdAt: string;
+    name: string;
+    email?: string;
+    phone1?: string;
+    phone2?: string;
+    mobilePhone1?: string;
+    address?: string;
+    city?: string;
+    district?: string;
+    country?: string;
+    taxOffice?: string;
+    taxNumber?: string;
+    commercialTitle?: string;
+    currentCode?: string;
+    status?: 'active' | 'passive';
+    segment?: 'loyal' | 'high_potential' | 'at_risk' | 'new';
+    churnRisk?: boolean;
+    assignedToId?: string;
+    notes?: string;
+    registrationDate?: string;
+    group?: string;
+    subgroup1?: string;
+    subgroup2?: string;
+    homePhone?: string;
+    fax?: string;
+    nationalId?: string;
+    specialCode1?: string;
+    specialCode2?: string;
+    specialCode3?: string;
+    specialDate?: string;
+    webcamImage?: string;
+    
+    // AI Analysis fields
+    aiOpportunityAnalysis?: { result: string, timestamp: string };
+    aiNextStepSuggestion?: { result: string, timestamp: string };
+    aiSentimentAnalysis?: { result: string, timestamp: string };
+}
+
+export interface Appointment {
+    id: string;
+    createdAt: string;
+    customerId: string;
+    userId: string;
+    assignedToId: string;
+    title: string;
+    start: string; // ISO
+    end: string;   // ISO
+    allDay?: boolean;
+    notes?: string;
+    reminder?: 'none' | '15m' | '1h' | '1d';
+}
+
+export interface Interview {
+    id: string;
+    createdAt: string;
+    customerId: string;
+    formTarihi: string;
+    fuar?: string;
+    sektor: string[];
+    ziyaretci: {
+        firmaAdi: string;
+        adSoyad: string;
+        bolumu: string;
+        telefon: string;
+        adres: string;
+        email: string;
+        web: string;
+    };
+    aksiyonlar: {
+        katalogGonderilecek: boolean;
+        teklifGonderilecek: boolean;
+        ziyaretEdilecek: boolean;
+        bizZiyaretEdecek: { tarih: string; adSoyad: string };
+    };
+    notlar: string;
+    gorusmeyiYapan: string;
+    gorusmeyiYapanId: string;
+    aiSummary?: string;
+}
+
+export interface OfferItem {
+    id: string;
+    cins: string;
+    miktar: number;
+    birim: string;
+    fiyat: number;
+    tutar: number;
+    teslimSuresi: string;
+}
+
+export interface Offer {
+    id: string;
+    createdAt: string;
+    teklifNo: string;
+    customerId: string;
+    teklifVerenId: string;
+    currency: 'TRY' | 'USD' | 'EUR';
+    firma: {
+        yetkili: string;
+        telefon: string;
+        eposta: string;
+        vade: string;
+        teklifTarihi: string;
+    };
+    teklifVeren: {
+        yetkili: string;
+        telefon: string;
+        eposta: string;
+    };
+    items: OfferItem[];
+    notlar: string;
+    toplam: number;
+    kdv: number;
+    genelToplam: number;
+}
+
+export type TaskStatus = 'pending' | 'in_progress' | 'completed';
+
+export interface Task {
+    id: string;
+    createdAt: string;
+    title: string;
+    description?: string;
+    status: TaskStatus;
+    dueDate?: string;
+    assignedToId: string;
+    relatedToEntity?: 'customer' | 'offer';
+    relatedToId?: string;
+}
+
+export type ExpenseCategory = 'travel' | 'food' | 'accommodation' | 'fuel' | 'representation' | 'other';
+
+export interface Expense {
+    id: string;
+    createdAt: string;
+    userId: string;
+    date: string;
+    category: ExpenseCategory;
+    amount: number;
+    currency: 'TRY' | 'USD' | 'EUR';
+    description: string;
+    receiptImage?: string;
 }
 
 export type Page = 'dashboard' | 'customers' | 'email' | 'appointments' | 'gorusme-formu' | 'teklif-yaz' | 'personnel' | 'hesaplama-araclari' | 'profile' | 'yapay-zeka' | 'konum-takip' | 'erp-entegrasyonu' | 'ai-ayarlari' | 'raporlar' | 'email-taslaklari' | 'mutabakat' | 'audit-log' | 'tasks' | 'expenses' | 'manufacturing-analysis' | 'email-hub';

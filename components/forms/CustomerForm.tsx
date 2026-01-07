@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, ReactNode } from 'react';
 import { useData } from '../../contexts/DataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -100,7 +101,7 @@ const CustomerForm = ({ isOpen, onClose, customer }: CustomerFormProps) => {
 
     const getInitialState = (): CustomerFormData => ({
         name: '', email: '', status: 'active', currentCode: '', commercialTitle: '', address: '',
-        country: '', city: '', district: '', postalCode: '', group: '', subgroup1: '', subgroup2: '',
+        country: '', city: '', district: '', group: '', subgroup1: '', subgroup2: '',
         phone1: '', phone2: '', homePhone: '', mobilePhone1: '', fax: '', taxOffice: '',
         taxNumber: '', nationalId: '', specialCode1: '', specialCode2: '', specialCode3: '',
         registrationDate: new Date().toISOString().slice(0, 10), specialDate: '', webcamImage: '', notes: '',

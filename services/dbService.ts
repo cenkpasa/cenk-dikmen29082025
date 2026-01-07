@@ -1,6 +1,6 @@
 
 import Dexie, { type Table } from 'dexie';
-import { User, Customer, Appointment, Interview, Offer, ErpSettings, StockItem, Invoice, Notification, LeaveRequest, KmRecord, LocationRecord, AISettings, EmailDraft, Reconciliation, CalculatorState, CalculationHistoryItem, IncomingInvoice, OutgoingInvoice, AuditLog, ShiftTemplate, ShiftAssignment, Warehouse, StockLevel, Task, Expense, PayrollEntry, EmailMessage, EmailAccountSettings, Contact } from '../types';
+import { User, Customer, Appointment, Interview, Offer, ErpSettings, StockItem, Invoice, Notification, LeaveRequest, KmRecord, LocationRecord, AISettings, EmailDraft, Reconciliation, CalculatorState, CalculationHistoryItem, IncomingInvoice, OutgoingInvoice, AuditLog, ShiftTemplate, ShiftAssignment, Warehouse, StockLevel, Task, Expense, PayrollEntry, EmailMessage, EmailAccountSettings, Contact, Attachment } from '../types';
 import { DEFAULT_ADMIN, MOCK_APPOINTMENTS, MOCK_CUSTOMERS } from '../constants';
 import { MOCK_INCOMING_INVOICES, MOCK_OUTGOING_INVOICES } from './erpMockData';
 import { v4 as uuidv4 } from 'uuid';
@@ -23,7 +23,7 @@ export class AppDatabase extends Dexie {
     aiSettings!: Table<AISettings, string>;
     emailDrafts!: Table<EmailDraft, string>;
     emails!: Table<EmailMessage, string>;
-    emailSettings!: Table<EmailAccountSettings, 'default'>;
+    emailSettings!: Table<EmailAccountSettings, string>;
     reconciliations!: Table<Reconciliation, string>;
     calculatorState!: Table<CalculatorState, 'default'>;
     calculationHistory!: Table<CalculationHistoryItem, number>;
@@ -38,7 +38,7 @@ export class AppDatabase extends Dexie {
 
     constructor() {
         super('CnkCrmDatabase');
-        (this as Dexie).version(33).stores({
+        (this as Dexie).version(35).stores({
             users: 'id, &username',
             customers: 'id, &currentCode, name, createdAt, status, assignedToId',
             appointments: 'id, customerId, start, userId, assignedToId',
@@ -55,7 +55,7 @@ export class AppDatabase extends Dexie {
             locationHistory: 'id, userId, timestamp',
             aiSettings: 'userId',
             emailDrafts: 'id, createdAt, status, relatedObjectId',
-            emails: 'id, timestamp, folder, isRead, subject, [folder+isRead]',
+            emails: 'id, accountId, timestamp, folder, isRead, subject, [folder+isRead]',
             emailSettings: 'id',
             reconciliations: 'id, customerId, status, period, createdAt',
             calculatorState: 'id',
@@ -74,49 +74,108 @@ export class AppDatabase extends Dexie {
 
 export const db = new AppDatabase();
 
+// Helper to generate large simulated attachments
+const createMockAttachments = (count: number): Attachment[] => {
+    const types = [
+        { ext: 'pdf', mime: 'application/pdf', name: 'Teknik_Cizim_v' },
+        { ext: 'xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', name: 'Stok_Raporu_202' },
+        { ext: 'docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', name: 'Sozlesme_Taslagi_' },
+        { ext: 'jpg', mime: 'image/jpeg', name: 'Fabrika_Foto_' },
+        { ext: 'zip', mime: 'application/zip', name: 'Yedek_Arsiv_' }
+    ];
+    
+    const attachments: Attachment[] = [];
+    for(let i=0; i<count; i++) {
+        const type = types[Math.floor(Math.random() * types.length)];
+        // Simulate massive sizes: 5MB to 8.5 GB
+        const size = Math.floor(Math.random() * (8500 * 1024 * 1024 - 5 * 1024 * 1024) + 5 * 1024 * 1024); 
+        
+        attachments.push({
+            id: uuidv4(),
+            name: `${type.name}${Math.floor(Math.random() * 100)}.${type.ext}`,
+            size: size,
+            type: type.mime,
+            isSimulated: true
+        });
+    }
+    return attachments;
+};
+
+const DEFAULT_ACCOUNT_ID = 'default-account-id';
+
 // Realistic mock emails for history
 const MOCK_EMAIL_HISTORY: EmailMessage[] = [
     {
         id: uuidv4(),
+        accountId: DEFAULT_ACCOUNT_ID,
         from: { name: 'Ahmet Yılmaz', email: 'ahmet.yilmaz@musteri.com' },
         to: { name: 'Cenk Dikmen', email: 'satis@cnkkesicitakim.com.tr' },
         subject: 'Fiyat Teklifi Talebi - Karbür Uçlar',
         body: 'Merhaba Cenk Bey,\n\nEkteki teknik resimdeki parçalar için kullanabileceğimiz karbür uçlar hakkında fiyat teklifi rica ediyorum. Yıllık tüketimimiz yaklaşık 500 adet olacaktır.\n\nİyi çalışmalar,\nAhmet Yılmaz\nSatın Alma Müdürü',
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(), // 5 days ago
         isRead: true,
-        folder: 'inbox'
+        folder: 'inbox',
+        attachments: createMockAttachments(2)
     },
     {
         id: uuidv4(),
+        accountId: DEFAULT_ACCOUNT_ID,
         from: { name: 'Cenk Dikmen', email: 'satis@cnkkesicitakim.com.tr' },
         to: { name: 'Ahmet Yılmaz', email: 'ahmet.yilmaz@musteri.com' },
         subject: 'RE: Fiyat Teklifi Talebi - Karbür Uçlar',
         body: 'Merhaba Ahmet Bey,\n\nİlginiz için teşekkürler. İlgili ürünler için teklifimiz ektedir. Stoklarımızda mevcuttur, sipariş onayı durumunda 2 gün içinde sevk edebiliriz.\n\nSaygılarımla,\nCenk Dikmen\nCNK Kesici Takım',
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(), // 4 days ago
         isRead: true,
-        folder: 'sent'
+        folder: 'sent',
+        attachments: createMockAttachments(1)
     },
     {
         id: uuidv4(),
+        accountId: DEFAULT_ACCOUNT_ID,
         from: { name: 'Mehmet Demir', email: 'mehmet@tedarikci.com' },
         to: { name: 'Satis Ekibi', email: 'satis@cnkkesicitakim.com.tr' },
-        subject: 'Yeni Ürün Kataloğu 2025',
-        body: 'Değerli İş Ortağımız,\n\n2025 yılı yeni ürün kataloğumuz yayınlandı. İncelemeniz için linki aşağıda paylaşıyorum.\n\nSaygılar,\nMehmet Demir',
+        subject: 'Yeni Ürün Kataloğu 2025 (Dev Arşiv)',
+        body: 'Değerli İş Ortağımız,\n\n2025 yılı yeni ürün kataloğumuz ve yüksek çözünürlüklü görseller ektedir. Dosya boyutu büyük olduğu için indirirken dikkat ediniz.\n\nSaygılar,\nMehmet Demir',
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
         isRead: false,
-        folder: 'inbox'
-    },
-    {
-        id: uuidv4(),
-        from: { name: 'Banka Bildirim', email: 'noreply@banka.com' },
-        to: { name: 'Muhasebe', email: 'muhasebe@cnkkesicitakim.com.tr' },
-        subject: 'Hesap Ekstresi - Ağustos 2025',
-        body: 'Sayın Müşterimiz,\n\nAğustos 2025 dönemine ait hesap ekstreniz hazırdır. İnternet bankacılığı üzerinden görüntüleyebilirsiniz.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
-        isRead: true,
-        folder: 'trash'
+        folder: 'inbox',
+        attachments: [
+            { id: uuidv4(), name: '2025_Katalog_Full.pdf', size: 1024 * 1024 * 450, type: 'application/pdf', isSimulated: true }, // 450 MB
+            { id: uuidv4(), name: 'Urun_Gorselleri_RAW.zip', size: 1024 * 1024 * 1024 * 4.2, type: 'application/zip', isSimulated: true } // 4.2 GB
+        ]
     }
 ];
+
+// Function to generate massive historical data on demand
+export const generateMassiveHistory = (accountId: string): EmailMessage[] => {
+    const emails: EmailMessage[] = [];
+    const subjects = [
+        "Sipariş Onayı", "Teknik Destek Talebi", "Fatura Gönderimi", "Toplantı Notları", 
+        "Proje Güncellemesi", "Stok Durumu", "Yeni Ürün Tanıtımı", "İade İşlemleri", 
+        "Kargo Takip", "Bayram Tebriği", "Aylık Rapor", "Yıllık Bakım Anlaşması"
+    ];
+    
+    // Generate ~150 emails spread over 3 years
+    for (let i = 0; i < 150; i++) {
+        const daysAgo = Math.floor(Math.random() * 1000);
+        const hasAttachments = Math.random() > 0.4;
+        const subject = subjects[Math.floor(Math.random() * subjects.length)];
+        
+        emails.push({
+            id: uuidv4(),
+            accountId: accountId,
+            from: { name: `Müşteri ${Math.floor(Math.random() * 50)}`, email: `musteri${Math.floor(Math.random() * 50)}@firma.com` },
+            to: { name: 'Satis', email: 'satis@cnkkesicitakim.com.tr' },
+            subject: `${subject} - #${1000+i}`,
+            body: "Merhaba,\n\nİlgili konu hakkındaki detaylar ektedir veya aşağıda belirtilmiştir.\n\nİyi çalışmalar.",
+            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * daysAgo).toISOString(),
+            isRead: true,
+            folder: Math.random() > 0.3 ? 'inbox' : 'sent',
+            attachments: hasAttachments ? createMockAttachments(Math.floor(Math.random() * 4) + 1) : []
+        });
+    }
+    return emails;
+};
 
 /**
  * Seeds initial mock data for testing purposes.
@@ -148,6 +207,32 @@ export const seedInitialData = async () => {
     const outCount = await db.outgoingInvoices.count();
     if (outCount === 0) {
         await db.outgoingInvoices.bulkAdd(MOCK_OUTGOING_INVOICES.map(i => ({...i, id: i.faturaNo} as OutgoingInvoice)));
+    }
+
+    // Seed default email settings if empty
+    const accountCount = await db.emailSettings.count();
+    if (accountCount === 0) {
+        const defaultSettings: EmailAccountSettings = {
+            id: DEFAULT_ACCOUNT_ID,
+            accountName: 'CNK Satış',
+            provider: 'other',
+            color: '#3b82f6', // Blue
+            status: 'active',
+            emailAddress: 'satis@cnkkesicitakim.com.tr',
+            senderName: 'Cenk Dikmen',
+            signature: '\n\n--\nCenk Dikmen\nGenel Müdür\nCNK Kesici Takım\nTel: +90 312 395 55 55\nWeb: www.cnkkesicitakim.com.tr',
+            imapHost: 'imap.yandex.com',
+            imapPort: 993,
+            imapUser: 'satis@cnkkesicitakim.com.tr',
+            imapPass: '',
+            imapSecurity: 'ssl',
+            smtpHost: 'smtp.yandex.com',
+            smtpPort: 465,
+            smtpUser: 'satis@cnkkesicitakim.com.tr',
+            smtpPass: '',
+            smtpSecurity: 'ssl'
+        };
+        await db.emailSettings.add(defaultSettings);
     }
 
     // Seed emails if empty
@@ -190,28 +275,6 @@ export const seedInitialData = async () => {
         if (contacts.length > 0) {
             await db.contacts.bulkPut(contacts);
         }
-    }
-
-    // Seed default email settings with signature if empty
-    const settings = await db.emailSettings.get('default');
-    if (!settings) {
-        const defaultSettings: EmailAccountSettings = {
-            id: 'default',
-            emailAddress: 'satis@cnkkesicitakim.com.tr',
-            senderName: 'Cenk Dikmen',
-            signature: '\n\n--\nCenk Dikmen\nGenel Müdür\nCNK Kesici Takım\nTel: +90 312 395 55 55\nWeb: www.cnkkesicitakim.com.tr',
-            imapHost: 'imap.yandex.com',
-            imapPort: 993,
-            imapUser: 'satis@cnkkesicitakim.com.tr',
-            imapPass: '',
-            imapSecurity: 'ssl',
-            smtpHost: 'smtp.yandex.com',
-            smtpPort: 465,
-            smtpUser: 'satis@cnkkesicitakim.com.tr',
-            smtpPass: '',
-            smtpSecurity: 'ssl'
-        };
-        await db.emailSettings.add(defaultSettings);
     }
 };
 

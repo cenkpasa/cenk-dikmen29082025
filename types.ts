@@ -3,8 +3,18 @@ export type UserRole = 'admin' | 'saha' | 'muhasebe';
 
 // ... existing interfaces ...
 
+export interface Attachment {
+    id: string;
+    name: string;
+    size: number; // in bytes
+    type: string; // MIME type
+    url?: string; // For preview if available
+    isSimulated?: boolean; // True if it's a mock large file
+}
+
 export interface EmailMessage {
     id: string;
+    accountId: string; // Added to link email to specific account
     from: { name: string; email: string };
     to: { name: string; email: string };
     cc?: string[];
@@ -16,7 +26,7 @@ export interface EmailMessage {
     folder: 'inbox' | 'sent' | 'drafts' | 'trash';
     relatedToEntity?: 'customer' | 'offer';
     relatedToId?: string;
-    attachments?: { name: string; size: string; type: string }[];
+    attachments?: Attachment[];
 }
 
 export interface Contact {
@@ -29,22 +39,31 @@ export interface Contact {
 }
 
 export interface EmailAccountSettings {
-    id: 'default';
+    id: string; // GUID
+    accountName: string; // e.g. "Work Email"
+    provider: 'gmail' | 'outlook' | 'yahoo' | 'other';
+    color: string; // UI color tag
     emailAddress: string;
     senderName: string;
-    signature?: string; // Added signature field
+    signature?: string;
+    
     // Incoming (IMAP)
     imapHost: string;
     imapPort: number;
     imapUser: string;
     imapPass: string;
     imapSecurity: 'ssl' | 'tls' | 'none';
+    
     // Outgoing (SMTP)
     smtpHost: string;
     smtpPort: number;
     smtpUser: string;
     smtpPass: string;
     smtpSecurity: 'ssl' | 'tls' | 'none';
+
+    // Status
+    lastSync?: string;
+    status: 'active' | 'error' | 'syncing';
 }
 
 // ... existing interfaces ...

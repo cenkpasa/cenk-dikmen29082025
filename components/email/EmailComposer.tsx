@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Button from '../common/Button';
@@ -8,6 +7,8 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { enhanceEmailBody } from '../../services/aiService';
 import ContactListModal from './ContactListModal';
+import { Attachment } from '../../types';
+import { v4 as uuidv4 } from 'uuid';
 
 interface EmailComposerProps {
     isOpen: boolean;
@@ -26,9 +27,10 @@ const EmailComposer = ({ isOpen, onClose, initialRecipients = [] }: EmailCompose
     const [showCcBcc, setShowCcBcc] = useState(false);
     const [subject, setSubject] = useState('');
     const [body, setBody] = useState('');
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [isAiLoading, setIsAiLoading] = useState(false);
     
-    // Address Book Modal State
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [isAddressBookOpen, setIsAddressBookOpen] = useState(false);
 
     useEffect(() => {
@@ -37,12 +39,30 @@ const EmailComposer = ({ isOpen, onClose, initialRecipients = [] }: EmailCompose
         }
     }, [emailSettings]);
 
-    // Update 'to' field if initialRecipients changes (e.g. reopening with data)
     useEffect(() => {
         if(initialRecipients.length > 0) {
             setTo(initialRecipients.join(', '));
         }
     }, [initialRecipients]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const newAttachments: Attachment[] = Array.from(e.target.files).map((file: File) => ({
+                id: uuidv4(),
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                // In a real app, we would read content here. 
+                // For "unlimited" simulation, we don't read huge files to memory to avoid crash.
+                isSimulated: file.size > 5 * 1024 * 1024 // Mark files > 5MB as simulated/metadata only
+            }));
+            setAttachments(prev => [...prev, ...newAttachments]);
+        }
+    };
+
+    const removeAttachment = (id: string) => {
+        setAttachments(prev => prev.filter(a => a.id !== id));
+    };
 
     const handleSend = async () => {
         if (!to || !subject || !body) {
@@ -50,17 +70,14 @@ const EmailComposer = ({ isOpen, onClose, initialRecipients = [] }: EmailCompose
             return;
         }
         
-        // Handle Multiple Recipients logic
-        // If there are multiple emails in 'To', backend logic usually handles looping.
-        // In our EmailContext simulation, we split by comma.
-        
         await sendEmail({
             from: { name: emailSettings?.senderName || 'Cenk CRM', email: emailSettings?.emailAddress || 'satis@cnkkesicitakim.com.tr' },
-            to: { name: to, email: to }, // The context will parse comma separated emails
+            to: { name: to, email: to },
             cc: cc ? cc.split(',').map(e => e.trim()) : [],
             bcc: bcc ? bcc.split(',').map(e => e.trim()) : [],
             subject,
-            body
+            body,
+            attachments
         });
         showNotification('sentStatus', 'success');
         onClose();
@@ -69,7 +86,6 @@ const EmailComposer = ({ isOpen, onClose, initialRecipients = [] }: EmailCompose
     const handleAiEnhance = async () => {
         if (!body) return;
         setIsAiLoading(true);
-        // Temporarily remove signature to enhance only body text
         const signature = emailSettings?.signature || '';
         const bodyContent = body.replace(signature, '').trim();
         
@@ -85,10 +101,17 @@ const EmailComposer = ({ isOpen, onClose, initialRecipients = [] }: EmailCompose
 
     const handleAddressBookSelect = (emails: string[]) => {
         const currentRecipients = to ? to.split(',').map(e => e.trim()).filter(e => e) : [];
-        // Add new emails avoiding duplicates
         const uniqueRecipients = Array.from(new Set([...currentRecipients, ...emails]));
         setTo(uniqueRecipients.join(', '));
         setIsAddressBookOpen(false);
+    };
+
+    const formatSize = (bytes: number) => {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
     return (
@@ -143,6 +166,40 @@ const EmailComposer = ({ isOpen, onClose, initialRecipients = [] }: EmailCompose
                             AI ile Düzenle
                         </Button>
                     </div>
+
+                    {/* Attachment Section */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <input 
+                                type="file" 
+                                multiple 
+                                ref={fileInputRef} 
+                                className="hidden" 
+                                onChange={handleFileChange} 
+                            />
+                            <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} icon="fas fa-paperclip">
+                                {t('addAttachment')}
+                            </Button>
+                            <span className="text-xs text-cnk-txt-muted-light">{t('unlimitedSize')}</span>
+                        </div>
+                        {attachments.length > 0 && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                                {attachments.map(att => (
+                                    <div key={att.id} className="flex items-center justify-between p-2 bg-cnk-bg-light rounded border border-cnk-border-light text-sm">
+                                        <div className="flex items-center gap-2 truncate">
+                                            <i className="fas fa-file text-cnk-txt-secondary-light"></i>
+                                            <span className="truncate">{att.name}</span>
+                                            <span className="text-xs text-cnk-txt-muted-light whitespace-nowrap">({formatSize(att.size)})</span>
+                                        </div>
+                                        <button onClick={() => removeAttachment(att.id)} className="text-red-500 hover:text-red-700 ml-2">
+                                            <i className="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     <div className="flex justify-end gap-3 pt-4 border-t">
                         <Button variant="secondary" onClick={onClose}>{t('cancel')}</Button>
                         <Button onClick={handleSend} icon="fas fa-paper-plane" className="px-8">{t('send')}</Button>

@@ -2,21 +2,31 @@
 import React, { createContext, useContext, ReactNode, useEffect, useState, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { EmailMessage, EmailAccountSettings, Contact } from '../types';
-import { db } from '../services/dbService';
+import { db, generateMassiveHistory } from '../services/dbService';
 import { v4 as uuidv4 } from 'uuid';
 import { useNotificationCenter } from './NotificationCenterContext';
 
 interface EmailContextType {
     emails: EmailMessage[];
     contacts: Contact[];
-    emailSettings: EmailAccountSettings | undefined;
-    sendEmail: (email: Omit<EmailMessage, 'id' | 'timestamp' | 'folder' | 'isRead'>) => Promise<void>;
+    accounts: EmailAccountSettings[];
+    currentAccount: EmailAccountSettings | undefined;
+    setCurrentAccountId: (id: string) => void;
+    
+    sendEmail: (email: Omit<EmailMessage, 'id' | 'timestamp' | 'folder' | 'isRead' | 'accountId'>) => Promise<void>;
     markAsRead: (id: string) => Promise<void>;
     deleteEmail: (id: string) => Promise<void>;
-    saveEmailSettings: (settings: EmailAccountSettings) => Promise<void>;
+    
+    addAccount: (settings: Omit<EmailAccountSettings, 'id' | 'status'>) => Promise<void>;
+    updateAccount: (settings: EmailAccountSettings) => Promise<void>;
+    deleteAccount: (id: string) => Promise<void>;
+    repairAccount: (id: string) => Promise<boolean>;
+    importAccount: (source: string, type: string) => Promise<boolean>;
+
     addContact: (contact: Omit<Contact, 'id' | 'lastContacted'>) => Promise<void>;
     updateContact: (contact: Contact) => Promise<void>;
     deleteContact: (id: string) => Promise<void>;
+    
     unreadCount: number;
     syncEmails: () => Promise<void>;
     isSyncing: boolean;
@@ -27,11 +37,33 @@ const EmailContext = createContext<EmailContextType | undefined>(undefined);
 
 export const EmailProvider = ({ children }: { children?: ReactNode }) => {
     const { addNotification } = useNotificationCenter();
+    const [currentAccountId, setCurrentAccountId] = useState<string>('');
     
-    const emails = useLiveQuery(() => db.emails.orderBy('timestamp').reverse().toArray(), []) || [];
+    const accounts = useLiveQuery(() => db.emailSettings.toArray(), []) || [];
+    
+    // Select first account as default if none selected
+    useEffect(() => {
+        if (!currentAccountId && accounts.length > 0) {
+            setCurrentAccountId(accounts[0].id);
+        }
+    }, [accounts, currentAccountId]);
+
+    const currentAccount = accounts.find(a => a.id === currentAccountId);
+
+    const emails = useLiveQuery(() => {
+        if (!currentAccountId) return [];
+        return db.emails
+            .where('accountId').equals(currentAccountId)
+            .reverse()
+            .sortBy('timestamp');
+    }, [currentAccountId]) || [];
+
     const contacts = useLiveQuery(() => db.contacts.orderBy('name').toArray(), []) || [];
-    const emailSettings = useLiveQuery(() => db.emailSettings.get('default'), []);
-    const unreadCount = useLiveQuery(() => db.emails.where('isRead').equals(0).and(e => e.folder === 'inbox').count(), [], 0);
+    
+    const unreadCount = useLiveQuery(() => {
+        if (!currentAccountId) return 0;
+        return db.emails.where({ accountId: currentAccountId, folder: 'inbox', isRead: 0 }).count();
+    }, [currentAccountId]) || 0;
 
     const [isSyncing, setIsSyncing] = useState(false);
     const [lastSync, setLastSync] = useState<Date | null>(null);
@@ -56,35 +88,59 @@ export const EmailProvider = ({ children }: { children?: ReactNode }) => {
     };
 
     const syncEmails = async () => {
-        if (isSyncing) return;
+        if (isSyncing || !currentAccount) return;
         setIsSyncing(true);
 
-        // Simulate server delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Simulate server connection and massive download
+        await new Promise(resolve => setTimeout(resolve, 2500));
 
-        // Generate specific mock emails if they don't exist
+        // 1. Check if we need to hydrate massive history (first sync simulation for this account)
+        const count = await db.emails.where('accountId').equals(currentAccountId).count();
+        if (count < 50) {
+            console.log(`Downloading massive email history for account ${currentAccount.accountName}...`);
+            const massiveHistory = generateMassiveHistory(currentAccountId);
+            await db.emails.bulkAdd(massiveHistory);
+            
+            addNotification({
+                messageKey: 'syncComplete',
+                replacements: { count: String(massiveHistory.length) },
+                type: 'system'
+            });
+        }
+
+        // 2. Simulate receiving a new "live" email occasionally
         const random = Math.random();
         if (random > 0.3) { 
             const newEmails: EmailMessage[] = [
                 {
                     id: uuidv4(),
+                    accountId: currentAccountId,
                     from: { name: 'Ali Veli', email: 'ali.veli@metalurji.com' },
-                    to: { name: emailSettings?.senderName || 'Satis', email: emailSettings?.emailAddress || 'satis@cnk.com' },
+                    to: { name: currentAccount.senderName, email: currentAccount.emailAddress },
                     subject: 'Sipariş Durumu Hakkında',
                     body: 'Merhaba, geçen hafta verdiğimiz siparişin son durumu nedir? Acil dönüş rica ederim.',
                     timestamp: new Date().toISOString(),
                     isRead: false,
-                    folder: 'inbox'
+                    folder: 'inbox',
+                    attachments: []
                 },
                 {
                     id: uuidv4(),
+                    accountId: currentAccountId,
                     from: { name: 'Lojistik Departmanı', email: 'lojistik@kargo.com' },
-                    to: { name: 'Depo', email: 'depo@cnk.com' },
+                    to: { name: currentAccount.senderName, email: currentAccount.emailAddress },
                     subject: 'Teslimat Onayı: #CNK-2025-001',
                     body: 'Kargonuz teslim edilmiştir. Teslim alan: Güvenlik.',
                     timestamp: new Date().toISOString(),
                     isRead: false,
-                    folder: 'inbox'
+                    folder: 'inbox',
+                    attachments: [{
+                        id: uuidv4(),
+                        name: 'Teslim_Tutanagi.pdf',
+                        size: 1024 * 500, // 500KB
+                        type: 'application/pdf',
+                        isSimulated: true
+                    }]
                 }
             ];
             
@@ -92,7 +148,7 @@ export const EmailProvider = ({ children }: { children?: ReactNode }) => {
             const emailToAdd = newEmails[Math.floor(Math.random() * newEmails.length)];
             
             // Check duplicate by subject to avoid spamming the same mock
-            const exists = await db.emails.where('subject').equals(emailToAdd.subject).first();
+            const exists = await db.emails.where({ accountId: currentAccountId, subject: emailToAdd.subject }).first();
             
             if (!exists) {
                 await db.emails.add(emailToAdd);
@@ -112,10 +168,13 @@ export const EmailProvider = ({ children }: { children?: ReactNode }) => {
         setIsSyncing(false);
     };
 
-    const sendEmail = async (emailData: Omit<EmailMessage, 'id' | 'timestamp' | 'folder' | 'isRead'>) => {
+    const sendEmail = async (emailData: Omit<EmailMessage, 'id' | 'timestamp' | 'folder' | 'isRead' | 'accountId'>) => {
+        if (!currentAccount) throw new Error("No account selected");
+        
         const newEmail: EmailMessage = {
             ...emailData,
             id: uuidv4(),
+            accountId: currentAccount.id,
             timestamp: new Date().toISOString(),
             isRead: true,
             folder: 'sent'
@@ -123,10 +182,8 @@ export const EmailProvider = ({ children }: { children?: ReactNode }) => {
         await db.emails.add(newEmail);
         
         // Automatically add recipient to contacts
-        // Handle multiple recipients if comma separated (simple split)
         const recipients = emailData.to.email.split(',').map(e => e.trim());
         for (const recipientEmail of recipients) {
-             // For simplicity, use the email as name if name is generic, or reuse the 'name' field if single
              const name = recipients.length === 1 ? emailData.to.name : recipientEmail.split('@')[0];
              await autoAddOrUpdateContact(name, recipientEmail, 'outgoing');
         }
@@ -140,8 +197,43 @@ export const EmailProvider = ({ children }: { children?: ReactNode }) => {
         await db.emails.update(id, { folder: 'trash' });
     };
 
-    const saveEmailSettings = async (settings: EmailAccountSettings) => {
+    // --- Account Management ---
+    const addAccount = async (settings: Omit<EmailAccountSettings, 'id' | 'status'>) => {
+        const newAccount: EmailAccountSettings = {
+            ...settings,
+            id: uuidv4(),
+            status: 'active'
+        };
+        await db.emailSettings.add(newAccount);
+        setCurrentAccountId(newAccount.id);
+        // Trigger initial hydration for this new account
+        setTimeout(() => syncEmails(), 500); 
+    };
+
+    const updateAccount = async (settings: EmailAccountSettings) => {
         await db.emailSettings.put(settings);
+    };
+
+    const deleteAccount = async (id: string) => {
+        await db.emails.where('accountId').equals(id).delete();
+        await db.emailSettings.delete(id);
+        if (currentAccountId === id) {
+            const remaining = accounts.find(a => a.id !== id);
+            setCurrentAccountId(remaining ? remaining.id : '');
+        }
+    };
+
+    const repairAccount = async (id: string): Promise<boolean> => {
+        // Simulation of repair process
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        await db.emailSettings.update(id, { status: 'active' });
+        return true;
+    };
+
+    const importAccount = async (source: string, type: string): Promise<boolean> => {
+        // Simulation of import process (e.g. from PST or another service)
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        return true;
     };
 
     // --- Contact Management ---
@@ -169,11 +261,17 @@ export const EmailProvider = ({ children }: { children?: ReactNode }) => {
         <EmailContext.Provider value={{ 
             emails, 
             contacts, 
-            emailSettings, 
+            accounts,
+            currentAccount,
+            setCurrentAccountId,
             sendEmail, 
             markAsRead, 
             deleteEmail, 
-            saveEmailSettings, 
+            addAccount, 
+            updateAccount, 
+            deleteAccount,
+            repairAccount,
+            importAccount,
             addContact, 
             updateContact, 
             deleteContact,

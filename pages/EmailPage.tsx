@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useEmail } from '../contexts/EmailContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { EmailMessage } from '../types';
+import { EmailMessage, Attachment } from '../types';
 import Button from '../components/common/Button';
 import { formatDateTime } from '../utils/formatting';
 import EmailComposer from '../components/email/EmailComposer';
@@ -12,7 +12,7 @@ import ContactListModal from '../components/email/ContactListModal';
 
 const EmailPage = () => {
     const { t } = useLanguage();
-    const { emails, markAsRead, deleteEmail, unreadCount, syncEmails, isSyncing, lastSync } = useEmail();
+    const { emails, markAsRead, deleteEmail, unreadCount, syncEmails, isSyncing, lastSync, accounts, currentAccount, setCurrentAccountId } = useEmail();
     const { showNotification } = useNotification();
     
     const [activeFolder, setActiveFolder] = useState<'inbox' | 'sent' | 'drafts' | 'trash'>('inbox');
@@ -21,8 +21,8 @@ const EmailPage = () => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAddressBookOpen, setIsAddressBookOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
     
-    // State to hold recipients selected from Address Book for bulk compose
     const [composeRecipients, setComposeRecipients] = useState<string[]>([]);
 
     const filteredEmails = useMemo(() => {
@@ -55,10 +55,78 @@ const EmailPage = () => {
         setIsComposerOpen(true);
     };
 
+    const formatSize = (bytes: number) => {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
+    const getFileIcon = (mimeType: string) => {
+        if (mimeType.includes('pdf')) return 'fa-file-pdf text-red-500';
+        if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return 'fa-file-excel text-green-600';
+        if (mimeType.includes('word') || mimeType.includes('document')) return 'fa-file-word text-blue-600';
+        if (mimeType.includes('image')) return 'fa-file-image text-purple-500';
+        if (mimeType.includes('zip') || mimeType.includes('compressed')) return 'fa-file-archive text-amber-600';
+        return 'fa-file text-slate-500';
+    };
+
+    const handleDownload = (att: Attachment) => {
+        // Simulation of downloading a potentially huge file
+        const delay = att.size > 1024*1024*50 ? 2000 : 500; // Fake delay for large files
+        setTimeout(() => {
+            showNotification('fileDownloaded', 'success', { name: att.name });
+        }, delay);
+    };
+
     return (
         <div className="flex flex-col md:flex-row h-[calc(100vh-120px)] bg-white rounded-xl shadow-lg border border-cnk-border-light overflow-hidden">
             {/* Left Sidebar: Folders */}
             <div className="w-full md:w-64 border-r bg-slate-50 p-4 flex flex-col gap-2">
+                
+                {/* Account Switcher */}
+                <div className="relative mb-4">
+                    <button 
+                        onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
+                        className="w-full flex items-center justify-between p-3 bg-white border border-cnk-border-light rounded-lg hover:shadow-sm transition-all"
+                    >
+                        <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{ backgroundColor: currentAccount?.color || '#3b82f6' }}>
+                                {currentAccount?.accountName.charAt(0) || 'A'}
+                            </div>
+                            <div className="text-left truncate">
+                                <div className="font-bold text-sm text-cnk-txt-primary-light truncate">{currentAccount?.accountName || 'Hesap Seçin'}</div>
+                                <div className="text-xs text-cnk-txt-muted-light truncate">{currentAccount?.emailAddress}</div>
+                            </div>
+                        </div>
+                        <i className={`fas fa-chevron-down text-slate-400 transition-transform ${isAccountDropdownOpen ? 'rotate-180' : ''}`}></i>
+                    </button>
+                    
+                    {isAccountDropdownOpen && (
+                        <div className="absolute top-full left-0 w-full mt-2 bg-white border border-cnk-border-light rounded-lg shadow-xl z-20 overflow-hidden">
+                            {accounts.map(acc => (
+                                <button
+                                    key={acc.id}
+                                    onClick={() => { setCurrentAccountId(acc.id); setIsAccountDropdownOpen(false); setSelectedEmailId(null); }}
+                                    className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 text-left border-b border-slate-100 last:border-0"
+                                >
+                                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: acc.color }}>
+                                        {acc.accountName.charAt(0)}
+                                    </div>
+                                    <span className="text-sm font-medium text-slate-700 truncate">{acc.accountName}</span>
+                                </button>
+                            ))}
+                            <button 
+                                onClick={() => { setIsSettingsOpen(true); setIsAccountDropdownOpen(false); }}
+                                className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 text-left text-cnk-accent-primary font-medium text-sm"
+                            >
+                                <i className="fas fa-plus-circle"></i> {t('addAccount')} / {t('settings')}
+                            </button>
+                        </div>
+                    )}
+                </div>
+
                 <Button onClick={() => { setComposeRecipients([]); setIsComposerOpen(true); }} icon="fas fa-edit" className="mb-2 w-full justify-start py-3">
                     {t('createEmail')}
                 </Button>
@@ -142,7 +210,12 @@ const EmailPage = () => {
                                     <span className="text-[10px] text-slate-400 shrink-0">{formatDateTime(email.timestamp)}</span>
                                 </div>
                                 <h4 className="text-sm text-slate-700 truncate">{email.subject}</h4>
-                                <p className="text-xs text-slate-400 line-clamp-1">{email.body}</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-xs text-slate-400 line-clamp-1 flex-grow">{email.body}</p>
+                                    {email.attachments && email.attachments.length > 0 && (
+                                        <i className="fas fa-paperclip text-slate-400 text-xs"></i>
+                                    )}
+                                </div>
                             </div>
                         ))
                     ) : (
@@ -179,8 +252,30 @@ const EmailPage = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="p-8 flex-1 overflow-y-auto bg-white m-4 rounded-xl shadow-sm border whitespace-pre-wrap text-slate-700 leading-relaxed">
-                            {selectedEmail.body}
+                        <div className="p-8 flex-1 overflow-y-auto bg-white m-4 rounded-xl shadow-sm border whitespace-pre-wrap text-slate-700 leading-relaxed flex flex-col">
+                            <div className="flex-grow">{selectedEmail.body}</div>
+                            
+                            {/* Attachments Section */}
+                            {selectedEmail.attachments && selectedEmail.attachments.length > 0 && (
+                                <div className="mt-8 pt-4 border-t border-slate-200">
+                                    <h4 className="font-bold text-sm text-slate-600 mb-2 flex items-center gap-2">
+                                        <i className="fas fa-paperclip"></i>
+                                        {selectedEmail.attachments.length} {t('attachments')}
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {selectedEmail.attachments.map(att => (
+                                            <div key={att.id} className="flex items-center p-3 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors">
+                                                <i className={`fas ${getFileIcon(att.type)} text-2xl mr-3`}></i>
+                                                <div className="flex-grow min-w-0">
+                                                    <p className="text-sm font-medium text-slate-700 truncate" title={att.name}>{att.name}</p>
+                                                    <p className="text-xs text-slate-500">{formatSize(att.size)}</p>
+                                                </div>
+                                                <Button size="sm" variant="secondary" icon="fas fa-download" onClick={() => handleDownload(att)} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 ) : (

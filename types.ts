@@ -47,19 +47,25 @@ export interface EmailAccountSettings {
     senderName: string;
     signature?: string;
     
-    // Incoming (IMAP)
+    // Incoming (IMAP) - Still needed for potential backend integration
     imapHost: string;
     imapPort: number;
     imapUser: string;
     imapPass: string;
     imapSecurity: 'ssl' | 'tls' | 'none';
     
-    // Outgoing (SMTP)
+    // Outgoing (SMTP) - Kept for reference, but EmailJS is used for real browser sending
     smtpHost: string;
     smtpPort: number;
     smtpUser: string;
     smtpPass: string;
     smtpSecurity: 'ssl' | 'tls' | 'none';
+
+    // EmailJS Configuration (For Real Sending from Browser)
+    useEmailJs?: boolean;
+    emailJsServiceId?: string;
+    emailJsTemplateId?: string;
+    emailJsPublicKey?: string;
 
     // Status
     lastSync?: string;

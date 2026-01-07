@@ -74,108 +74,7 @@ export class AppDatabase extends Dexie {
 
 export const db = new AppDatabase();
 
-// Helper to generate large simulated attachments
-const createMockAttachments = (count: number): Attachment[] => {
-    const types = [
-        { ext: 'pdf', mime: 'application/pdf', name: 'Teknik_Cizim_v' },
-        { ext: 'xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', name: 'Stok_Raporu_202' },
-        { ext: 'docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', name: 'Sozlesme_Taslagi_' },
-        { ext: 'jpg', mime: 'image/jpeg', name: 'Fabrika_Foto_' },
-        { ext: 'zip', mime: 'application/zip', name: 'Yedek_Arsiv_' }
-    ];
-    
-    const attachments: Attachment[] = [];
-    for(let i=0; i<count; i++) {
-        const type = types[Math.floor(Math.random() * types.length)];
-        // Simulate massive sizes: 5MB to 8.5 GB
-        const size = Math.floor(Math.random() * (8500 * 1024 * 1024 - 5 * 1024 * 1024) + 5 * 1024 * 1024); 
-        
-        attachments.push({
-            id: uuidv4(),
-            name: `${type.name}${Math.floor(Math.random() * 100)}.${type.ext}`,
-            size: size,
-            type: type.mime,
-            isSimulated: true
-        });
-    }
-    return attachments;
-};
-
 const DEFAULT_ACCOUNT_ID = 'default-account-id';
-
-// Realistic mock emails for history
-const MOCK_EMAIL_HISTORY: EmailMessage[] = [
-    {
-        id: uuidv4(),
-        accountId: DEFAULT_ACCOUNT_ID,
-        from: { name: 'Ahmet Yılmaz', email: 'ahmet.yilmaz@musteri.com' },
-        to: { name: 'Cenk Dikmen', email: 'satis@cnkkesicitakim.com.tr' },
-        subject: 'Fiyat Teklifi Talebi - Karbür Uçlar',
-        body: 'Merhaba Cenk Bey,\n\nEkteki teknik resimdeki parçalar için kullanabileceğimiz karbür uçlar hakkında fiyat teklifi rica ediyorum. Yıllık tüketimimiz yaklaşık 500 adet olacaktır.\n\nİyi çalışmalar,\nAhmet Yılmaz\nSatın Alma Müdürü',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(), // 5 days ago
-        isRead: true,
-        folder: 'inbox',
-        attachments: createMockAttachments(2)
-    },
-    {
-        id: uuidv4(),
-        accountId: DEFAULT_ACCOUNT_ID,
-        from: { name: 'Cenk Dikmen', email: 'satis@cnkkesicitakim.com.tr' },
-        to: { name: 'Ahmet Yılmaz', email: 'ahmet.yilmaz@musteri.com' },
-        subject: 'RE: Fiyat Teklifi Talebi - Karbür Uçlar',
-        body: 'Merhaba Ahmet Bey,\n\nİlginiz için teşekkürler. İlgili ürünler için teklifimiz ektedir. Stoklarımızda mevcuttur, sipariş onayı durumunda 2 gün içinde sevk edebiliriz.\n\nSaygılarımla,\nCenk Dikmen\nCNK Kesici Takım',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(), // 4 days ago
-        isRead: true,
-        folder: 'sent',
-        attachments: createMockAttachments(1)
-    },
-    {
-        id: uuidv4(),
-        accountId: DEFAULT_ACCOUNT_ID,
-        from: { name: 'Mehmet Demir', email: 'mehmet@tedarikci.com' },
-        to: { name: 'Satis Ekibi', email: 'satis@cnkkesicitakim.com.tr' },
-        subject: 'Yeni Ürün Kataloğu 2025 (Dev Arşiv)',
-        body: 'Değerli İş Ortağımız,\n\n2025 yılı yeni ürün kataloğumuz ve yüksek çözünürlüklü görseller ektedir. Dosya boyutu büyük olduğu için indirirken dikkat ediniz.\n\nSaygılar,\nMehmet Demir',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-        isRead: false,
-        folder: 'inbox',
-        attachments: [
-            { id: uuidv4(), name: '2025_Katalog_Full.pdf', size: 1024 * 1024 * 450, type: 'application/pdf', isSimulated: true }, // 450 MB
-            { id: uuidv4(), name: 'Urun_Gorselleri_RAW.zip', size: 1024 * 1024 * 1024 * 4.2, type: 'application/zip', isSimulated: true } // 4.2 GB
-        ]
-    }
-];
-
-// Function to generate massive historical data on demand
-export const generateMassiveHistory = (accountId: string): EmailMessage[] => {
-    const emails: EmailMessage[] = [];
-    const subjects = [
-        "Sipariş Onayı", "Teknik Destek Talebi", "Fatura Gönderimi", "Toplantı Notları", 
-        "Proje Güncellemesi", "Stok Durumu", "Yeni Ürün Tanıtımı", "İade İşlemleri", 
-        "Kargo Takip", "Bayram Tebriği", "Aylık Rapor", "Yıllık Bakım Anlaşması"
-    ];
-    
-    // Generate ~150 emails spread over 3 years
-    for (let i = 0; i < 150; i++) {
-        const daysAgo = Math.floor(Math.random() * 1000);
-        const hasAttachments = Math.random() > 0.4;
-        const subject = subjects[Math.floor(Math.random() * subjects.length)];
-        
-        emails.push({
-            id: uuidv4(),
-            accountId: accountId,
-            from: { name: `Müşteri ${Math.floor(Math.random() * 50)}`, email: `musteri${Math.floor(Math.random() * 50)}@firma.com` },
-            to: { name: 'Satis', email: 'satis@cnkkesicitakim.com.tr' },
-            subject: `${subject} - #${1000+i}`,
-            body: "Merhaba,\n\nİlgili konu hakkındaki detaylar ektedir veya aşağıda belirtilmiştir.\n\nİyi çalışmalar.",
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * daysAgo).toISOString(),
-            isRead: true,
-            folder: Math.random() > 0.3 ? 'inbox' : 'sent',
-            attachments: hasAttachments ? createMockAttachments(Math.floor(Math.random() * 4) + 1) : []
-        });
-    }
-    return emails;
-};
 
 /**
  * Seeds initial mock data for testing purposes.
@@ -191,12 +90,6 @@ export const seedInitialData = async () => {
     if (!adminUser) {
         console.log("Seeding default admin user...");
         await db.users.add(adminData);
-    } else {
-        // Force update password to ensure login works even if it was changed
-        if (adminUser.password !== DEFAULT_ADMIN.password) {
-            console.log("Resetting admin password to default...");
-            await db.users.update('admin-id', { password: DEFAULT_ADMIN.password });
-        }
     }
     
     // Seed invoices if empty
@@ -214,68 +107,27 @@ export const seedInitialData = async () => {
     if (accountCount === 0) {
         const defaultSettings: EmailAccountSettings = {
             id: DEFAULT_ACCOUNT_ID,
-            accountName: 'CNK Satış',
+            accountName: 'Varsayılan Hesap',
             provider: 'other',
-            color: '#3b82f6', // Blue
+            color: '#94a3b8',
             status: 'active',
-            emailAddress: 'satis@cnkkesicitakim.com.tr',
-            senderName: 'Cenk Dikmen',
-            signature: '\n\n--\nCenk Dikmen\nGenel Müdür\nCNK Kesici Takım\nTel: +90 312 395 55 55\nWeb: www.cnkkesicitakim.com.tr',
-            imapHost: 'imap.yandex.com',
+            emailAddress: '', 
+            senderName: '',
+            imapHost: '',
             imapPort: 993,
-            imapUser: 'satis@cnkkesicitakim.com.tr',
+            imapUser: '',
             imapPass: '',
             imapSecurity: 'ssl',
-            smtpHost: 'smtp.yandex.com',
-            smtpPort: 465,
-            smtpUser: 'satis@cnkkesicitakim.com.tr',
+            smtpHost: '',
+            smtpPort: 587,
+            smtpUser: '',
             smtpPass: '',
-            smtpSecurity: 'ssl'
+            smtpSecurity: 'tls'
         };
         await db.emailSettings.add(defaultSettings);
     }
-
-    // Seed emails if empty
-    const emailCount = await db.emails.count();
-    if (emailCount === 0) {
-        console.log("Seeding email history...");
-        await db.emails.bulkAdd(MOCK_EMAIL_HISTORY);
-        
-        // Seed contacts from initial emails
-        console.log("Seeding contacts from initial emails...");
-        const contactsMap = new Map<string, Contact>();
-        
-        MOCK_EMAIL_HISTORY.forEach(email => {
-            // Process sender
-            if (email.folder === 'inbox') {
-                if (!contactsMap.has(email.from.email)) {
-                    contactsMap.set(email.from.email, {
-                        id: uuidv4(),
-                        name: email.from.name,
-                        email: email.from.email,
-                        source: 'incoming',
-                        lastContacted: email.timestamp
-                    });
-                }
-            } else if (email.folder === 'sent') {
-                // Process recipient
-                if (!contactsMap.has(email.to.email)) {
-                    contactsMap.set(email.to.email, {
-                        id: uuidv4(),
-                        name: email.to.name,
-                        email: email.to.email,
-                        source: 'outgoing',
-                        lastContacted: email.timestamp
-                    });
-                }
-            }
-        });
-        
-        const contacts = Array.from(contactsMap.values());
-        if (contacts.length > 0) {
-            await db.contacts.bulkPut(contacts);
-        }
-    }
+    
+    // STRICTLY NO MOCK EMAILS GENERATED HERE
 };
 
 seedInitialData();

@@ -15,9 +15,9 @@ interface EmailSettingsModalProps {
 }
 
 type Tab = 'accounts' | 'general' | 'import';
-type WizardStep = 'provider' | 'details' | 'finish';
+type WizardStep = 'provider' | 'details' | 'emailjs' | 'test';
 
-const AccountForm = ({ 
+const AccountWizard = ({ 
     initialData, 
     onSave, 
     onCancel 
@@ -29,6 +29,8 @@ const AccountForm = ({
     const { t } = useLanguage();
     const [step, setStep] = useState<WizardStep>(initialData?.id ? 'details' : 'provider');
     const [isSaving, setIsSaving] = useState(false);
+    const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+    const [testLogs, setTestLogs] = useState<string[]>([]);
     
     const [formData, setFormData] = useState<Partial<EmailAccountSettings>>({
         accountName: '',
@@ -46,13 +48,17 @@ const AccountForm = ({
         smtpUser: '',
         smtpPass: '',
         smtpSecurity: 'tls',
+        useEmailJs: false,
+        emailJsServiceId: '',
+        emailJsTemplateId: '',
+        emailJsPublicKey: '',
         ...initialData
     });
 
     const providers = [
-        { id: 'gmail', name: 'Gmail', icon: 'fab fa-google', color: 'text-red-500', auto: { imapHost: 'imap.gmail.com', smtpHost: 'smtp.gmail.com' } },
-        { id: 'outlook', name: 'Outlook / Hotmail', icon: 'fab fa-microsoft', color: 'text-blue-500', auto: { imapHost: 'outlook.office365.com', smtpHost: 'smtp.office365.com' } },
-        { id: 'yahoo', name: 'Yahoo Mail', icon: 'fab fa-yahoo', color: 'text-purple-600', auto: { imapHost: 'imap.mail.yahoo.com', smtpHost: 'smtp.mail.yahoo.com' } },
+        { id: 'gmail', name: 'Gmail', icon: 'fab fa-google', color: 'text-red-500', auto: { imapHost: 'imap.gmail.com', smtpHost: 'smtp.gmail.com', imapPort: 993, smtpPort: 465, imapSecurity: 'ssl', smtpSecurity: 'ssl' } },
+        { id: 'outlook', name: 'Outlook / Hotmail', icon: 'fab fa-microsoft', color: 'text-blue-500', auto: { imapHost: 'outlook.office365.com', smtpHost: 'smtp.office365.com', imapPort: 993, smtpPort: 587, imapSecurity: 'ssl', smtpSecurity: 'tls' } },
+        { id: 'yahoo', name: 'Yahoo Mail', icon: 'fab fa-yahoo', color: 'text-purple-600', auto: { imapHost: 'imap.mail.yahoo.com', smtpHost: 'smtp.mail.yahoo.com', imapPort: 993, smtpPort: 465, imapSecurity: 'ssl', smtpSecurity: 'ssl' } },
         { id: 'other', name: 'Diğer (IMAP/POP)', icon: 'fas fa-server', color: 'text-slate-600', auto: {} }
     ];
 
@@ -67,7 +73,39 @@ const AccountForm = ({
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        setFormData({ ...formData, [e.target.id]: e.target.value });
+        const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
+        setFormData({ ...formData, [e.target.id]: value });
+    };
+
+    const runConnectionTest = async () => {
+        setStep('test');
+        setTestStatus('testing');
+        setTestLogs([]);
+        
+        const addLog = (msg: string) => setTestLogs(prev => [...prev, msg]);
+        
+        // Basic validation
+        if (!formData.emailAddress) {
+            addLog("HATA: E-posta adresi eksik.");
+            setTestStatus('error');
+            return;
+        }
+
+        if (formData.useEmailJs) {
+            addLog("EmailJS Modu: Yapılandırma kontrol ediliyor...");
+            if(formData.emailJsServiceId && formData.emailJsPublicKey) {
+                 addLog("EmailJS bilgileri mevcut. Gönderim denenebilir.");
+                 setTestStatus('success');
+            } else {
+                 addLog("HATA: EmailJS Service ID veya Public Key eksik.");
+                 setTestStatus('error');
+            }
+        } else {
+            addLog("Standart SMTP/IMAP Modu.");
+            addLog("NOT: Tarayıcılar güvenlik nedeniyle doğrudan IMAP bağlantısına izin vermez.");
+            addLog("Eğer bir Proxy/Backend sunucunuz yoksa gelen kutusu senkronize olmayacaktır.");
+            setTestStatus('success'); // İzin veriyoruz ama uyarıyoruz
+        }
     };
 
     const handleSave = async () => {
@@ -78,14 +116,14 @@ const AccountForm = ({
 
     if (step === 'provider') {
         return (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-fadeIn">
                 <h3 className="text-lg font-bold text-cnk-txt-primary-light text-center mb-6">Hesap Türünü Seçin</h3>
                 <div className="grid grid-cols-2 gap-4">
                     {providers.map(p => (
                         <button 
                             key={p.id} 
                             onClick={() => handleProviderSelect(p.id)}
-                            className="flex flex-col items-center justify-center p-6 border rounded-xl hover:bg-slate-50 hover:border-cnk-accent-primary transition-all group"
+                            className="flex flex-col items-center justify-center p-6 border rounded-xl hover:bg-slate-50 hover:border-cnk-accent-primary transition-all group shadow-sm"
                         >
                             <i className={`${p.icon} text-4xl mb-3 ${p.color} group-hover:scale-110 transition-transform`}></i>
                             <span className="font-semibold text-cnk-txt-secondary-light">{p.name}</span>
@@ -99,59 +137,135 @@ const AccountForm = ({
         );
     }
 
+    if (step === 'test') {
+        return (
+            <div className="space-y-6 animate-fadeIn flex flex-col items-center justify-center h-full min-h-[400px]">
+                <div className={`w-24 h-24 rounded-full flex items-center justify-center text-5xl mb-4 transition-colors ${testStatus === 'testing' ? 'bg-blue-100 text-blue-500' : testStatus === 'success' ? 'bg-green-100 text-green-500' : 'bg-red-100 text-red-500'}`}>
+                    <i className={`fas ${testStatus === 'testing' ? 'fa-cog fa-spin' : testStatus === 'success' ? 'fa-check' : 'fa-times'}`}></i>
+                </div>
+                
+                <h3 className="text-xl font-bold">
+                    {testStatus === 'testing' ? 'Kontrol Ediliyor...' : testStatus === 'success' ? 'Kayda Hazır' : 'Hata'}
+                </h3>
+
+                <div className="w-full max-w-lg bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-sm h-48 overflow-y-auto shadow-inner border border-slate-700">
+                    {testLogs.map((log, i) => <div key={i} className="mb-1">&gt; {log}</div>)}
+                </div>
+
+                <div className="flex gap-3 mt-4">
+                    <Button variant="secondary" onClick={() => setStep('details')} disabled={isSaving}>{t('previous')}</Button>
+                    <Button onClick={runConnectionTest} variant="secondary" icon="fas fa-redo" disabled={testStatus === 'testing'}>{t('testConnection')}</Button>
+                    <Button onClick={handleSave} isLoading={isSaving} disabled={testStatus !== 'success'} variant="success" icon="fas fa-check">{t('saveAndClose')}</Button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-4 animate-fadeIn">
-            <h3 className="text-lg font-bold border-b pb-2">{initialData?.id ? 'Hesabı Düzenle' : 'Yeni Hesap Ayarları'}</h3>
+            <div className="flex items-center justify-between border-b pb-2">
+                <h3 className="text-lg font-bold">{initialData?.id ? 'Hesabı Düzenle' : 'Yeni Hesap Ayarları'}</h3>
+                {!initialData?.id && <button onClick={() => setStep('provider')} className="text-sm text-cnk-accent-primary hover:underline">Tür Değiştir</button>}
+            </div>
             
-            <div className="grid grid-cols-2 gap-4">
-                <Input label={t('accountName')} id="accountName" value={formData.accountName} onChange={handleChange} placeholder="Örn: İş E-postam" />
-                <div className="flex flex-col">
-                    <label className="mb-2 text-sm font-semibold text-cnk-txt-secondary-light">Etiket Rengi</label>
-                    <input type="color" id="color" value={formData.color} onChange={handleChange} className="h-10 w-full rounded border p-1 cursor-pointer" />
-                </div>
-                <Input label={t('emailAddress')} id="emailAddress" value={formData.emailAddress} onChange={handleChange} />
-                <Input label={t('senderName')} id="senderName" value={formData.senderName} onChange={handleChange} />
+            <div className="flex gap-2 mb-4 border-b">
+                <button onClick={() => setStep('details')} className={`px-4 py-2 ${step === 'details' ? 'border-b-2 border-blue-500 font-bold' : ''}`}>Temel Bilgiler</button>
+                <button onClick={() => setStep('emailjs')} className={`px-4 py-2 ${step === 'emailjs' ? 'border-b-2 border-blue-500 font-bold' : ''}`}>Gerçek Gönderim (EmailJS)</button>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded border">
-                <h4 className="font-bold text-sm mb-3">Gelen Sunucusu (IMAP)</h4>
-                <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-6"><Input label={t('host')} id="imapHost" value={formData.imapHost} onChange={handleChange} /></div>
-                    <div className="col-span-3"><Input label={t('port')} id="imapPort" value={String(formData.imapPort)} onChange={handleChange} /></div>
-                    <div className="col-span-3">
-                        <label className="block text-sm font-semibold mb-2">{t('security')}</label>
-                        <select id="imapSecurity" value={formData.imapSecurity} onChange={handleChange} className="w-full p-2 border rounded">
-                            <option value="ssl">SSL</option>
-                            <option value="tls">TLS</option>
-                            <option value="none">Yok</option>
-                        </select>
+            {step === 'details' && (
+                <>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input label={t('accountName')} id="accountName" value={formData.accountName} onChange={handleChange} placeholder="Örn: İş E-postam" />
+                        <div className="flex flex-col">
+                            <label className="mb-2 text-sm font-semibold text-cnk-txt-secondary-light">Etiket Rengi</label>
+                            <input type="color" id="color" value={formData.color} onChange={handleChange} className="h-10 w-full rounded border p-1 cursor-pointer" />
+                        </div>
+                        <Input label={t('emailAddress')} id="emailAddress" value={formData.emailAddress} onChange={handleChange} />
+                        <Input label={t('senderName')} id="senderName" value={formData.senderName} onChange={handleChange} />
                     </div>
-                    <div className="col-span-6"><Input label={t('username')} id="imapUser" value={formData.imapUser} onChange={handleChange} /></div>
-                    <div className="col-span-6"><Input label={t('password')} id="imapPass" type="password" value={formData.imapPass} onChange={handleChange} /></div>
-                </div>
-            </div>
 
-            <div className="bg-slate-50 p-4 rounded border">
-                <h4 className="font-bold text-sm mb-3">Giden Sunucusu (SMTP)</h4>
-                <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-6"><Input label={t('host')} id="smtpHost" value={formData.smtpHost} onChange={handleChange} /></div>
-                    <div className="col-span-3"><Input label={t('port')} id="smtpPort" value={String(formData.smtpPort)} onChange={handleChange} /></div>
-                    <div className="col-span-3">
-                        <label className="block text-sm font-semibold mb-2">{t('security')}</label>
-                        <select id="smtpSecurity" value={formData.smtpSecurity} onChange={handleChange} className="w-full p-2 border rounded">
-                            <option value="ssl">SSL</option>
-                            <option value="tls">TLS</option>
-                            <option value="none">Yok</option>
-                        </select>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-slate-50 p-4 rounded border">
+                            <h4 className="font-bold text-sm mb-3 flex items-center gap-2"><i className="fas fa-arrow-down text-green-600"></i> Gelen Sunucusu (IMAP)</h4>
+                            <div className="space-y-3">
+                                <Input label={t('host')} id="imapHost" value={formData.imapHost} onChange={handleChange} containerClassName="!mb-0" placeholder="imap.gmail.com" />
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Input label={t('port')} id="imapPort" value={String(formData.imapPort)} onChange={handleChange} containerClassName="!mb-0" />
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">{t('security')}</label>
+                                        <select id="imapSecurity" value={formData.imapSecurity} onChange={handleChange} className="w-full p-2 border rounded">
+                                            <option value="ssl">SSL</option>
+                                            <option value="tls">TLS</option>
+                                            <option value="none">Yok</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <Input label={t('username')} id="imapUser" value={formData.imapUser} onChange={handleChange} containerClassName="!mb-0" />
+                                <Input label={t('password')} id="imapPass" type="password" value={formData.imapPass} onChange={handleChange} containerClassName="!mb-0" />
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-50 p-4 rounded border">
+                            <h4 className="font-bold text-sm mb-3 flex items-center gap-2"><i className="fas fa-arrow-up text-blue-600"></i> Giden Sunucusu (SMTP)</h4>
+                            <div className="space-y-3">
+                                <Input label={t('host')} id="smtpHost" value={formData.smtpHost} onChange={handleChange} containerClassName="!mb-0" placeholder="smtp.gmail.com" />
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Input label={t('port')} id="smtpPort" value={String(formData.smtpPort)} onChange={handleChange} containerClassName="!mb-0" />
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">{t('security')}</label>
+                                        <select id="smtpSecurity" value={formData.smtpSecurity} onChange={handleChange} className="w-full p-2 border rounded">
+                                            <option value="ssl">SSL</option>
+                                            <option value="tls">TLS</option>
+                                            <option value="none">Yok</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <Input label={t('username')} id="smtpUser" value={formData.smtpUser} onChange={handleChange} containerClassName="!mb-0" />
+                                <Input label={t('password')} id="smtpPass" type="password" value={formData.smtpPass} onChange={handleChange} containerClassName="!mb-0" />
+                            </div>
+                        </div>
                     </div>
-                    <div className="col-span-6"><Input label={t('username')} id="smtpUser" value={formData.smtpUser} onChange={handleChange} /></div>
-                    <div className="col-span-6"><Input label={t('password')} id="smtpPass" type="password" value={formData.smtpPass} onChange={handleChange} /></div>
-                </div>
-            </div>
+                </>
+            )}
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
+            {step === 'emailjs' && (
+                <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                    <h4 className="font-bold text-lg mb-2 text-blue-800">EmailJS ile Gerçek Gönderim</h4>
+                    <p className="text-sm text-blue-700 mb-4">
+                        Tarayıcı üzerinden sunucusuz e-posta göndermek için <a href="https://www.emailjs.com/" target="_blank" className="underline font-bold">EmailJS</a> kullanabilirsiniz. Ücretsiz hesap oluşturup bilgileri buraya girin.
+                    </p>
+                    
+                    <div className="flex items-center gap-2 mb-4">
+                        <input type="checkbox" id="useEmailJs" checked={formData.useEmailJs} onChange={handleChange} className="w-5 h-5" />
+                        <label htmlFor="useEmailJs" className="font-bold">EmailJS Kullanarak Gerçek E-posta Gönder</label>
+                    </div>
+
+                    {formData.useEmailJs && (
+                        <div className="space-y-3 animate-fadeIn">
+                            <Input label="Service ID" id="emailJsServiceId" value={formData.emailJsServiceId || ''} onChange={handleChange} placeholder="service_xyz..." />
+                            <Input label="Template ID" id="emailJsTemplateId" value={formData.emailJsTemplateId || ''} onChange={handleChange} placeholder="template_xyz..." />
+                            <Input label="Public Key (User ID)" id="emailJsPublicKey" value={formData.emailJsPublicKey || ''} onChange={handleChange} placeholder="user_xyz..." />
+                            <div className="text-xs text-slate-500 mt-2 p-2 bg-white rounded border">
+                                <strong>İpucu:</strong> EmailJS şablonunuzda şu değişkenleri kullanın: <code>{`{{to_name}}`}</code>, <code>{`{{to_email}}`}</code>, <code>{`{{subject}}`}</code>, <code>{`{{message}}`}</code>.
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-4 border-t items-center bg-white sticky bottom-0">
                 <Button variant="secondary" onClick={onCancel} disabled={isSaving}>{t('cancel')}</Button>
-                <Button onClick={handleSave} isLoading={isSaving}>{t('save')}</Button>
+                
+                <div className="h-6 w-px bg-slate-300 mx-2"></div>
+                
+                <Button onClick={runConnectionTest} variant="info" icon="fas fa-plug">
+                    {t('testConnection')}
+                </Button>
+                
+                <Button onClick={handleSave} isLoading={isSaving} icon="fas fa-save">
+                    {t('save')}
+                </Button>
             </div>
         </div>
     );
@@ -215,7 +329,7 @@ const EmailSettingsModal = ({ isOpen, onClose }: EmailSettingsModalProps) => {
                 const success = await repairAccount(id);
                 if (success) {
                     setRepairStatus('success');
-                    setRepairLog(prev => [...prev, 'Onarım tamamlandı. Bağlantı başarılı.', 'Klasörler eşitlendi.']);
+                    setRepairLog(prev => [...prev, 'Onarım tamamlandı. Ayarlar güncellendi.']);
                 } else {
                     throw new Error('Bağlantı hatası');
                 }
@@ -281,6 +395,7 @@ const EmailSettingsModal = ({ isOpen, onClose }: EmailSettingsModalProps) => {
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <span className={`w-2 h-2 rounded-full ${acc.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></span>
                                                     <span className="text-xs text-slate-500">{acc.status === 'active' ? 'Bağlı' : 'Hata'}</span>
+                                                    {acc.useEmailJs && <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded">EmailJS</span>}
                                                 </div>
                                             </div>
                                         </div>
@@ -296,7 +411,7 @@ const EmailSettingsModal = ({ isOpen, onClose }: EmailSettingsModalProps) => {
                     )}
 
                     {viewMode === 'form' && (
-                        <AccountForm 
+                        <AccountWizard 
                             initialData={editingAccount || {}} 
                             onSave={handleSaveAccount} 
                             onCancel={() => setViewMode('list')} 
